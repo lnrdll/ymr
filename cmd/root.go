@@ -12,9 +12,17 @@ var cfg = app.Config{}
 var rootCmd = &cobra.Command{
 	Use:   "ymr [command]",
 	Short: "A flexible, spec-driven YAML templating tool.",
-	Long: `'ymr' (ya·mr) is a CLI tool that generates YAML files from a spec
-and one or more templates. It replaces values in the templates
-marked with '# from-param: <name>' or '# from-param-merge: <name>'
+	Long: `
+██╗   ██╗███╗   ███╗██████╗ 
+╚██╗ ██╔╝████╗ ████║██╔══██╗
+ ╚████╔╝ ██╔████╔██║██████╔╝
+  ╚██╔╝  ██║╚██╔╝██║██╔══██╗
+   ██║   ██║ ╚═╝ ██║██║  ██║
+   ╚═╝   ╚═╝     ╚═╝╚═╝  ╚═╝ (ya·mr)
+
+'ymr' is a CLI tool that generates YAML files from a spec and one
+or more templates. It replaces values in the templates marked
+with '# from-param: <name>' or '# from-param-merge: <name>'
 with values from the spec.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		_ = cmd.Help()
