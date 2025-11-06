@@ -1,0 +1,39 @@
+version: "3"
+
+tasks:
+  build:
+    desc: Build the compiled binary
+    dir: "{{.USER_WORKING_DIR}}"
+    cmds:
+      - CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o dist/ymr
+
+  test:
+    desc: Run all unit tests
+    dir: "{{.USER_WORKING_DIR}}"
+    cmds:
+      - go test -v -cover ./...
+
+  test::short:
+    desc: Run all unit tests and print short version
+    dir: "{{.USER_WORKING_DIR}}"
+    cmds:
+      - go test -v -cover | grep -E "PASS:|coverage"
+
+  lint:
+    desc: Lint the code
+    dir: "{{.USER_WORKING_DIR}}"
+    cmds:
+      - golangci-lint run -v
+
+  update:
+    desc: Update all modules
+    dir: "{{.USER_WORKING_DIR}}"
+    cmds:
+      - go get -u -t ./...
+      - go mod tidy
+
+  clean:
+    desc: Clean modules
+    dir: "{{.USER_WORKING_DIR}}"
+    cmds:
+      - go clean -modcache

@@ -1,0 +1,166 @@
+package app
+
+import (
+	"fmt"
+	"log/slog"
+	"maps"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"ymr/internal/processor"
+	"ymr/internal/source"
+	"ymr/internal/spec"
+)
+
+const TerminalOutputSentinel = "-"
+
+// applyCliOverrides applies CLI provided parameter overrides to a given parameter map.
+func applyCliOverrides(paramMap map[string]any, cliOverrides map[string]any) {
+	maps.Copy(paramMap, cliOverrides)
+}
+
+// Run is the main entrypoint for the application logic
+func Run(cfg Config) error {
+	// 1. Get Github Token if available
+	token := cfg.GithubToken
+	if token == "" {
+		token = os.Getenv("GITHUB_TOKEN")
+	}
+
+	// 2. Handle output dir/'-o -' logic
+	terminalOutput := false
+	outputDir := cfg.OutputDir
+	if outputDir == TerminalOutputSentinel {
+		terminalOutput = true
+		outputDir = ""
+	}
+
+	// 3. Get the correct source loader
+	loader, err := source.NewSourceLoader(cfg.SpecFile, token)
+	if err != nil {
+		return err
+	}
+	slog.Debug("Using source loader", "source", cfg.SpecFile)
+
+	// 4. Load the spec
+	specConfig, err := loader.LoadSpec(token)
+	if err != nil {
+		return fmt.Errorf("loading spec file: %w", err)
+	}
+
+	// 5. (Override) Handle CLI template override
+	if cfg.OverrideTemplate != "" {
+		specConfig.Templates = []string{cfg.OverrideTemplate}
+		slog.Debug("Overriding templates", "template", cfg.OverrideTemplate)
+	}
+
+	// 6. Build the parameter map
+	paramLookup := spec.BuildParamLookup(specConfig)
+
+	// 7. (Override) Parse and apply CLI parameters
+	cliOverrides, err := spec.ParseCliParams(cfg.OverrideParams)
+	if err != nil {
+		return fmt.Errorf("parsing override parameters: %w", err)
+	}
+
+	if len(cliOverrides) > 0 {
+		slog.Debug("Applying CLI parameter overrides", "count", len(cliOverrides))
+		for targetId, paramMap := range paramLookup {
+			applyCliOverrides(paramMap, cliOverrides)
+			paramLookup[targetId] = paramMap
+		}
+	}
+
+	// 8. (Override) Filter targets
+	targetsToRender := specConfig.TargetIds
+	if len(cfg.OverrideTargets) > 0 {
+		filteredTargets := make([]string, 0)
+		cliTargetSet := make(map[string]bool)
+		for _, t := range cfg.OverrideTargets {
+			cliTargetSet[t] = true
+		}
+		for _, specTargetId := range specConfig.TargetIds {
+			if _, ok := cliTargetSet[specTargetId]; ok {
+				filteredTargets = append(filteredTargets, specTargetId)
+			}
+		}
+		targetsToRender = filteredTargets
+		slog.Debug("Rendering specific targets", "targets", targetsToRender)
+	} else {
+		slog.Debug("Rendering all targets", "count", len(targetsToRender))
+	}
+
+	// 9. Process each template against each target
+	allOutputs := []processor.RenderedOutput{}
+	for _, templatePath := range specConfig.Templates {
+		templateContent, err := loader.LoadTemplate(templatePath, token)
+		if err != nil {
+			slog.Debug(fmt.Sprintf("Skipping template '%s' due to error: %v", templatePath, err))
+			continue
+		}
+
+		templateBaseName := filepath.Base(templatePath)
+		templateExt := filepath.Ext(templateBaseName)
+		templateNameOnly := strings.TrimSuffix(templateBaseName, templateExt)
+
+		for _, targetId := range targetsToRender {
+			params, ok := paramLookup[targetId]
+			if !ok {
+				params = make(map[string]any)
+			}
+			// Apply CLI overrides to newly created param map for targets not in spec
+			if len(cliOverrides) > 0 && !ok {
+				applyCliOverrides(params, cliOverrides)
+			}
+
+			renderedYaml, err := processor.ProcessContent(templateContent, params)
+
+			if err != nil {
+				slog.Debug(fmt.Sprintf("Skipping template '%s' for target '%s' due to error: %v", templatePath, targetId, err))
+				continue
+			}
+
+			outputFileName := fmt.Sprintf("%s-%s%s", targetId, templateNameOnly, templateExt)
+
+			allOutputs = append(allOutputs, processor.RenderedOutput{
+				TargetFile:   outputFileName,
+				TemplateUsed: templatePath,
+				Content:      renderedYaml,
+			})
+		}
+	}
+
+	// 10. Handle Output
+	return handleOutput(allOutputs, terminalOutput, outputDir)
+}
+
+// handleOutput writes files to disk or prints to stdout
+func handleOutput(outputs []processor.RenderedOutput, terminalOutput bool, outputDir string) error {
+	// print to terminal
+	if terminalOutput {
+		for _, output := range outputs {
+			fmt.Println(output.Content)
+		}
+		return nil
+	}
+
+	if outputDir != "" {
+		if err := os.MkdirAll(outputDir, 0755); err != nil {
+			return fmt.Errorf("creating output directory '%s': %w", outputDir, err)
+		}
+	}
+
+	for _, output := range outputs {
+		outPath := filepath.Join(outputDir, output.TargetFile)
+		err := os.WriteFile(outPath, []byte(output.Content), 0644)
+		if err != nil {
+			slog.Debug(fmt.Sprintf("Skipping file '%s' due to error: %v", outPath, err))
+			continue
+		} else {
+			slog.Debug("Generated file", "path", outPath)
+		}
+	}
+
+	return nil
+}

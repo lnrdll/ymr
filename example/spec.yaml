@@ -1,0 +1,38 @@
+apiVersion: ymr/v1
+kind: Config
+
+# A list of templates to process.
+# Paths are relative to the location of this spec.yaml.
+templates:
+  - https://raw.githubusercontent.com/lnrdll/ymr-test/refs/heads/main/service.yaml
+  # - service.yaml
+
+# A simple list of target environments.
+targetIds:
+  - dev
+  - prd
+
+# A list of parameter sets.
+parameters:
+  # --- Shared values for dev and prd ---
+  # - values:
+  #     companyName: "MyGlobalCorp"
+  #   targetId: # Which targets this value set applies to
+  #     - dev
+  #     - prd
+
+  # --- Dev-specific values ---
+  - values:
+      minScale: 1
+      serviceAccount: sa-run-jira-2-gcal@gfp-d-platform-utils.iam.gserviceaccount.com
+      image: us-central1-docker.internal.dev/gfp-p-artifacts-hub-01/ar-docker-experimental/jira2gcal:2025.10.17
+    targetId:
+      - dev
+
+  # --- Prod-specific values ---
+  - values:
+      minScale: 3
+      serviceAccount: sa-run-jira-2-gcal@gfp-p-platform-utils.iam.gserviceaccount.com
+      image: us-central1-docker.internal.dev/gfp-p-artifacts-hub-01/ar-docker-experimental/jira2gcal:2025.10.18
+    targetId:
+      - prd

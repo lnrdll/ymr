@@ -1,0 +1,35 @@
+apiVersion: ymr/v1
+kind: Config
+
+# A list of templates to process.
+# Paths are relative to the location of this spec.yaml.
+templates:
+  - base/service.yaml
+  - base/configmap.yaml
+
+# A simple list of target environments.
+targetIds:
+  - dev
+  - prd
+
+# A list of parameter sets.
+parameters:
+  # --- Shared values for dev and prd ---
+  - values:
+      companyName: "MyGlobalCorp"
+    targetId: # Which targets this value set applies to
+      - dev
+      - prd
+
+  # --- Dev-specific values ---
+  - values:
+      minScale: 1
+    targetId:
+      - dev
+
+  # --- Prod-specific values ---
+  - values:
+      minScale: 3
+      maxScale: 10
+    targetId:
+      - prd

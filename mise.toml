@@ -1,0 +1,5 @@
+[tools]
+golang = "1.25"
+
+[hooks]
+enter = "mise install"
