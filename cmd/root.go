@@ -17,7 +17,7 @@ and one or more templates. It replaces values in the templates
 marked with '# from-param: <name>' or '# from-param-merge: <name>'
 with values from the spec.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		cmd.Help()
+		_ = cmd.Help()
 		os.Exit(1)
 	},
 }

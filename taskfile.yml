@@ -2,22 +2,16 @@ version: "3"
 
 tasks:
   build:
-    desc: Build the compiled binary
+    desc: Build the binary
     dir: "{{.USER_WORKING_DIR}}"
     cmds:
       - CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o dist/ymr
 
   test:
-    desc: Run all unit tests
+    desc: Run tests
     dir: "{{.USER_WORKING_DIR}}"
     cmds:
       - go test -v -cover ./...
-
-  test::short:
-    desc: Run all unit tests and print short version
-    dir: "{{.USER_WORKING_DIR}}"
-    cmds:
-      - go test -v -cover | grep -E "PASS:|coverage"
 
   lint:
     desc: Lint the code
@@ -30,10 +24,16 @@ tasks:
     dir: "{{.USER_WORKING_DIR}}"
     cmds:
       - go get -u -t ./...
-      - go mod tidy
 
   clean:
     desc: Clean modules
     dir: "{{.USER_WORKING_DIR}}"
     cmds:
       - go clean -modcache
+
+  mod:
+    desc: Download and tidy Go Modules
+    dir: "{{.USER_WORKING_DIR}}"
+    cmds:
+      - go mod download
+      - go mod tidy
