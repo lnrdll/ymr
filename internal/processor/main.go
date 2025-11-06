@@ -3,12 +3,15 @@ package processor
 import (
 	"bytes"
 	"fmt"
+	"log/slog"
 	"regexp"
+	"text/template"
 
 	"gopkg.in/yaml.v3"
 )
 
-var paramCommentRegex = regexp.MustCompile(`(from-param|from-param-merge):\s*(\S+)`)
+// Regex captures the directive and capture **everything** after the colon to the end of the line.
+var paramCommentRegex = regexp.MustCompile(`(from-param|from-param-merge):\s*(.+)`)
 
 // ProcessContent takes template content and substitutes params
 func ProcessContent(templateContent []byte, params map[string]any) (string, error) {
@@ -35,61 +38,65 @@ func ProcessContent(templateContent []byte, params map[string]any) (string, erro
 // map keys and values correctly.
 func traverse(node *yaml.Node, params map[string]any) {
 	switch node.Kind {
-	// The "trunk" of the tree
-	// Recurse into the document's content
 	case yaml.DocumentNode:
+		// Recurse into the document's content
 		for _, child := range node.Content {
 			traverse(child, params)
 		}
 
-	// A branch that splits into more key-value pairs
-	// Handle maps: [key1, value1, key2, value2]
 	case yaml.MappingNode:
 		for i := 0; i < len(node.Content); i += 2 {
 			keyNode := node.Content[i]
 			valueNode := node.Content[i+1]
 
-			// Check for comment on the KEY node
 			if keyNode.LineComment != "" {
-				directive, paramName := parseParamFromComment(keyNode.LineComment)
-				if paramName != "" {
-					if value, ok := params[paramName]; ok {
-						// Apply substitution to the VALUE node
-						updateNodeValue(valueNode, value, directive)
+				directive, templateString := parseParamFromComment(keyNode.LineComment)
+				if templateString != "" {
+					renderedValue, err := executeTemplate(templateString, params)
+					if err == nil {
+						updateNodeValue(valueNode, renderedValue, directive)
+					} else {
+						slog.Debug("Template key missing, preserving default", "template", templateString, "error", err)
 					}
-					keyNode.LineComment = "" // Clear comment from key
+
+					// Always clear the comment
+					keyNode.LineComment = ""
 				}
 			}
 
-			// Check for comment on the VALUE node
 			if valueNode.LineComment != "" {
-				directive, paramName := parseParamFromComment(valueNode.LineComment)
-				if paramName != "" {
-					if value, ok := params[paramName]; ok {
-						// Apply substitution to the VALUE node
-						updateNodeValue(valueNode, value, directive)
+				directive, templateString := parseParamFromComment(valueNode.LineComment)
+				if templateString != "" {
+					renderedValue, err := executeTemplate(templateString, params)
+					if err == nil {
+						updateNodeValue(valueNode, renderedValue, directive)
+					} else {
+						slog.Debug("Template value missing, preserving default", "template", templateString, "error", err)
 					}
-					valueNode.LineComment = "" // Clear comment from value
+
+					// Always clear the comment
+					valueNode.LineComment = ""
 				}
 			}
 
-			// Recurse into children
 			traverse(keyNode, params)
 			traverse(valueNode, params)
 		}
-
-	// A branch that splits into a list of items.
-	// Handle sequences (arrays)
 	case yaml.SequenceNode:
+		// Handle sequences (arrays)
 		for _, child := range node.Content {
-			// Check for comment on the child node itself
 			if child.LineComment != "" {
-				directive, paramName := parseParamFromComment(child.LineComment)
-				if paramName != "" {
-					if value, ok := params[paramName]; ok {
-						updateNodeValue(child, value, directive)
+				directive, templateString := parseParamFromComment(child.LineComment)
+				if templateString != "" {
+					renderedValue, err := executeTemplate(templateString, params)
+					if err == nil {
+						updateNodeValue(child, renderedValue, directive)
+					} else {
+						slog.Debug("Template key missing, preserving default", "template", templateString, "error", err)
 					}
-					child.LineComment = "" // Clear comment
+
+					// Always clear the comment
+					child.LineComment = ""
 				}
 			}
 			traverse(child, params)
@@ -111,28 +118,41 @@ func parseParamFromComment(comment string) (directive, paramName string) {
 
 // updateNodeValue updates a yaml.Node with a new value, handling merge/replace
 func updateNodeValue(node *yaml.Node, newValue any, directive string) {
-	tempYaml, err := yaml.Marshal(newValue)
-	if err != nil {
-		node.Tag = "!!str"
-		node.Value = fmt.Sprintf("error marshaling:%v", err)
-		return
+	var replacementNode *yaml.Node
+
+	// 'newValue' is the *rendered string* (e.g., "1", "true", "my-string").
+	// We need to parse this string as YAML to get the correct type (number, bool, string).
+	if strVal, ok := newValue.(string); ok {
+		var tempNode yaml.Node
+		// Unmarshal the string value *as* a YAML scalar
+		if err := yaml.Unmarshal([]byte(strVal), &tempNode); err == nil && tempNode.Kind == yaml.DocumentNode {
+			replacementNode = tempNode.Content[0] // Get the scalar node
+		}
 	}
 
-	var tempRootNode yaml.Node
-	err = yaml.Unmarshal(tempYaml, &tempRootNode)
-	if err != nil {
-		node.Tag = "!!str"
-		node.Value = fmt.Sprintf("error marshaling:%v", err)
-		return
+	// If the above failed or newValue was not a string (e.g., complex map from merge),
+	// fall back to the old method.
+	if replacementNode == nil {
+		tempYAML, err := yaml.Marshal(newValue)
+		if err != nil {
+			node.Tag = "!!str"
+			node.Value = fmt.Sprintf("ERROR_MARSHALING:%v", err)
+			return
+		}
+		var tempRootNode yaml.Node
+		err = yaml.Unmarshal(tempYAML, &tempRootNode)
+		if err != nil {
+			node.Tag = "!!str"
+			node.Value = fmt.Sprintf("ERROR_UNMARSHALING:%v", err)
+			return
+		}
+		if tempRootNode.Kind != yaml.DocumentNode || len(tempRootNode.Content) == 0 {
+			return
+		}
+		replacementNode = tempRootNode.Content[0]
 	}
 
-	if tempRootNode.Kind != yaml.DocumentNode || len(tempRootNode.Content) == 0 {
-		return
-	}
-
-	replacementNode := tempRootNode.Content[0]
-
-	// 2. To merge or To replace
+	// (The merge/replace logic is unchanged)
 	isMerge := directive == "from-param-merge"
 	isNodeSequence := node.Kind == yaml.SequenceNode
 	isReplacementSequence := replacementNode.Kind == yaml.SequenceNode
@@ -140,16 +160,29 @@ func updateNodeValue(node *yaml.Node, newValue any, directive string) {
 	isReplacementMap := replacementNode.Kind == yaml.MappingNode
 
 	if isMerge && isNodeSequence && isReplacementSequence {
-		// Merge Array/Lists: Append new items
 		node.Content = append(node.Content, replacementNode.Content...)
 	} else if isMerge && isNodeMap && isReplacementMap {
-		// Merge object/maps
 		node.Content = append(node.Content, replacementNode.Content...)
 	} else {
-		// Replace
 		node.Kind = replacementNode.Kind
 		node.Tag = replacementNode.Tag
 		node.Value = replacementNode.Value
 		node.Content = replacementNode.Content
 	}
+}
+
+// Helper function to execute the template string
+func executeTemplate(tmplStr string, params map[string]any) (string, error) {
+	tmpl, err := template.New("param").Option("missingkey=error").Parse(tmplStr)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse template string %s: %w", tmplStr, err)
+	}
+
+	var buf bytes.Buffer
+	err = tmpl.Execute(&buf, params)
+	if err != nil {
+		return "", fmt.Errorf("failed to execute template %s: %w", tmplStr, err)
+	}
+
+	return buf.String(), nil
 }

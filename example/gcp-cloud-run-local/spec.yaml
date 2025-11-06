@@ -24,7 +24,7 @@ parameters:
   - values:
       minScale: 1
       serviceAccount: my-service-account@dev-project.iam.gserviceaccount.com
-      image: my-image:2025.11.17
+      version: 2025.11.17
       envVars:
         - name: HELLO
           value: world
@@ -35,6 +35,6 @@ parameters:
   - values:
       minScale: 3
       serviceAccount: my-service-account@prd-project.iam.gserviceaccount.com
-      image: my-image:2025.10.17
+      version: 2025.10.17
     targetId:
       - prd
