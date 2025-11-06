@@ -12,17 +12,14 @@ var paramCommentRegex = regexp.MustCompile(`(from-param|from-param-merge):\s*(\S
 
 // ProcessContent takes template content and substitutes params
 func ProcessContent(templateContent []byte, params map[string]any) (string, error) {
-	// 1. Parse into a yaml.Node tree
 	var rootNode yaml.Node
 	err := yaml.Unmarshal(templateContent, &rootNode)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse template yaml: %w", err)
 	}
 
-	// 2. Traverse the tree and substitute values
 	traverse(&rootNode, params)
 
-	// 3. Marshal the modified tree back into a string
 	var b bytes.Buffer
 	encoder := yaml.NewEncoder(&b)
 	encoder.SetIndent(2)
@@ -34,20 +31,72 @@ func ProcessContent(templateContent []byte, params map[string]any) (string, erro
 	return b.String(), nil
 }
 
-// traverse recursivelly visits every node in the tree
+// traverse recursively visits every node in the YAML tree, handling
+// map keys and values correctly.
 func traverse(node *yaml.Node, params map[string]any) {
-	if node.LineComment != "" {
-		directive, paramName := parseParamFromComment(node.LineComment)
-		if paramName != "" {
-			if value, ok := params[paramName]; ok {
-				updateNodeValue(node, value, directive)
-			}
-			node.LineComment = ""
+	switch node.Kind {
+	// The "trunk" of the tree
+	// Recurse into the document's content
+	case yaml.DocumentNode:
+		for _, child := range node.Content {
+			traverse(child, params)
 		}
-	}
 
-	for _, child := range node.Content {
-		traverse(child, params)
+	// A branch that splits into more key-value pairs
+	// Handle maps: [key1, value1, key2, value2]
+	case yaml.MappingNode:
+		for i := 0; i < len(node.Content); i += 2 {
+			keyNode := node.Content[i]
+			valueNode := node.Content[i+1]
+
+			// Check for comment on the KEY node
+			if keyNode.LineComment != "" {
+				directive, paramName := parseParamFromComment(keyNode.LineComment)
+				if paramName != "" {
+					if value, ok := params[paramName]; ok {
+						// Apply substitution to the VALUE node
+						updateNodeValue(valueNode, value, directive)
+					}
+					keyNode.LineComment = "" // Clear comment from key
+				}
+			}
+
+			// Check for comment on the VALUE node
+			if valueNode.LineComment != "" {
+				directive, paramName := parseParamFromComment(valueNode.LineComment)
+				if paramName != "" {
+					if value, ok := params[paramName]; ok {
+						// Apply substitution to the VALUE node
+						updateNodeValue(valueNode, value, directive)
+					}
+					valueNode.LineComment = "" // Clear comment from value
+				}
+			}
+
+			// Recurse into children
+			traverse(keyNode, params)
+			traverse(valueNode, params)
+		}
+
+	// A branch that splits into a list of items.
+	// Handle sequences (arrays)
+	case yaml.SequenceNode:
+		for _, child := range node.Content {
+			// Check for comment on the child node itself
+			if child.LineComment != "" {
+				directive, paramName := parseParamFromComment(child.LineComment)
+				if paramName != "" {
+					if value, ok := params[paramName]; ok {
+						updateNodeValue(child, value, directive)
+					}
+					child.LineComment = "" // Clear comment
+				}
+			}
+			traverse(child, params)
+		}
+
+		// The leaves of the tree
+		// Scalar nodes (strings, numbers, etc.) have no children, so recursion stops.
 	}
 }
 
@@ -62,11 +111,10 @@ func parseParamFromComment(comment string) (directive, paramName string) {
 
 // updateNodeValue updates a yaml.Node with a new value, handling merge/replace
 func updateNodeValue(node *yaml.Node, newValue any, directive string) {
-	// 1. Convert new value into a yaml.Node
 	tempYaml, err := yaml.Marshal(newValue)
 	if err != nil {
 		node.Tag = "!!str"
-		node.Value = fmt.Sprintf("ERROR_MARSHALING:%v", err)
+		node.Value = fmt.Sprintf("error marshaling:%v", err)
 		return
 	}
 
@@ -74,7 +122,7 @@ func updateNodeValue(node *yaml.Node, newValue any, directive string) {
 	err = yaml.Unmarshal(tempYaml, &tempRootNode)
 	if err != nil {
 		node.Tag = "!!str"
-		node.Value = fmt.Sprintf("ERROR_MARSHALING:%v", err)
+		node.Value = fmt.Sprintf("error marshaling:%v", err)
 		return
 	}
 

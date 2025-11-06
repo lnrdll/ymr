@@ -27,20 +27,24 @@ spec:
     spec:
       containerConcurrency: 80 # from-param: concurrency
       containers:
-          image: image/test:2025.10.17 # from-param: image
-          ports:
-            - containerPort: 8080
-              name: http1
-          resources:
-            limits:
-              cpu: 1000m # from-param: cpu
-              memory: 512Mi # from-param: memory
-          startupProbe:
-            failureThreshold: 1
-            periodSeconds: 240
-            tcpSocket:
-              port: 8080
-            timeoutSeconds: 240
+      - env: # from-param-merge: envVars
+        - name: FOO
+          value: BAR
+        image: image/test:2025.10.17 # from-param: image
+        name: jira2gcal-1
+        ports:
+        - containerPort: 8080
+          name: http1
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 512Mi
+        startupProbe:
+          failureThreshold: 1
+          periodSeconds: 240
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 240
       serviceAccountName: sa-test@gcp-example.iam.gserviceaccount.com # from-param: serviceAccount
       timeoutSeconds: 300
   traffic:
