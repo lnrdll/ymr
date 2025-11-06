@@ -14,11 +14,11 @@ targetIds:
 # A list of parameter sets.
 parameters:
   # --- Shared values for dev and prd ---
-  # - values:
-  #     companyName: "MyGlobalCorp"
-  #   targetId: # Which targets this value set applies to
-  #     - dev
-  #     - prd
+  - values:
+      concurrency: 250
+    targetId: # Which targets this value set applies to
+      - dev
+      - prd
 
   # --- Dev-specific values ---
   - values:

@@ -24,7 +24,7 @@ targetIds:
 
 # A list of parameter sets.
 parameters:
-  # --- Shared values for dev and prd ---
+  # --- Shared values ---
   - values:
       companyName: "MyGlobalCorp"
     targetId: # Which targets this value set applies to
