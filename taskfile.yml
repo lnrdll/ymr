@@ -5,7 +5,14 @@ tasks:
     desc: Build the binary
     dir: "{{.USER_WORKING_DIR}}"
     cmds:
-      - CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o dist/ymr
+      - CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ymr
+  
+  build::local:
+    desc: Build the compiled binary
+    dir: "{{.USER_WORKING_DIR}}"
+    cmds:
+      - task: build
+      - sudo mv ymr /usr/local/bin
 
   test:
     desc: Run tests

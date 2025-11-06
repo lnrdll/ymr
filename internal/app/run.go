@@ -36,17 +36,36 @@ func Run(cfg Config) error {
 		outputDir = ""
 	}
 
-	// 3. Get the correct source loader
-	loader, err := source.NewSourceLoader(cfg.SpecFile, token)
-	if err != nil {
-		return err
-	}
-	slog.Debug("Using source loader", "source", cfg.SpecFile)
+	// 3. Load the specs
+	var specConfig *spec.SpecConfig
+	var loader source.SourceLoader
+	var err error
 
-	// 4. Load the spec
-	specConfig, err := loader.LoadSpec(token)
-	if err != nil {
-		return fmt.Errorf("loading spec file: %w", err)
+	if cfg.SpecFile != "" {
+		// Spec-file mode
+		slog.Debug("Using source loader", "source", cfg.SpecFile)
+
+		loader, err = source.NewSourceLoader(cfg.SpecFile, token)
+		if err != nil {
+			return err
+		}
+
+		specConfig, err = loader.LoadSpec(token)
+		if err != nil {
+			return fmt.Errorf("loading spec file: %w", err)
+		}
+	} else {
+		// Spec-Less mode
+		slog.Debug("Running in spec-less mode (no spec file found or provided)")
+		specConfig = &spec.SpecConfig{
+			Templates:  []string{cfg.OverrideTemplate},
+			TargetIds:  cfg.OverrideTargets,
+			Parameters: []spec.ParamSet{},
+		}
+
+		// Create a LocalLoader based on the current directory
+		cwd, _ := os.Getwd()
+		loader = &source.LocalLoader{BaseDir: cwd, SpecPath: ""}
 	}
 
 	// 5. (Override) Handle CLI template override

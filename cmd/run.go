@@ -29,6 +29,32 @@ via CLI flags.`,
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		if cfg.SpecFile == "" {
+			// No spec file explicitly provided.
+			// 1. Check if the default 'spec.yaml' exists locally.
+			if _, err := os.Stat("spec.yaml"); err == nil {
+				cfg.SpecFile = "spec.yaml" // Default exists, use it.
+			} else {
+				// 2. No default spec.yaml. We are in spec-less mode.
+				// We *must* have a template and at least one target.
+				if cfg.OverrideTemplate == "" {
+					_ = cmd.Help()
+					fmt.Fprintf(os.Stderr, "\nError: in spec-less mode (no -f flag or spec.yaml), --template (-t) is required.\n")
+					os.Exit(1)
+				}
+				if len(cfg.OverrideTargets) == 0 {
+					_ = cmd.Help()
+					fmt.Fprintf(os.Stderr, "\nError: in spec-less mode (no -f flag or spec.yaml), at least one --target is required.\n")
+					os.Exit(1)
+				}
+				if len(cfg.OverrideParams) == 0 {
+					_ = cmd.Help()
+					fmt.Fprintf(os.Stderr, "\nError: in spec-less mode (no -f flag or spec.yaml), at least one --param is required.\n")
+					os.Exit(1)
+				}
+			}
+		}
+
 		if err := app.Run(cfg); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
@@ -43,7 +69,7 @@ func init() {
 		&cfg.SpecFile,
 		"file",
 		"f",
-		"spec.yaml",
+		"",
 		"Source path (local, dir, file, http url, or github). Defaults to ./spec.yaml)",
 	)
 
@@ -52,7 +78,7 @@ func init() {
 		"template",
 		"t",
 		"",
-		"A single template file/URL to override the 'templates' list in the spec",
+		"A single template file/URL. Required in spec-less mode.",
 	)
 
 	runCmd.PersistentFlags().StringVarP(
