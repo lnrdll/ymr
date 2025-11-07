@@ -20,9 +20,9 @@ var rootCmd = &cobra.Command{
    ██║   ██║ ╚═╝ ██║██║  ██║
    ╚═╝   ╚═╝     ╚═╝╚═╝  ╚═╝ (ya·mr)
 
-'ymr' is a CLI tool that generates YAML files from a spec and one
-or more templates. It replaces values in the templates marked
-with '# from-param: <name>' or '# from-param-merge: <name>'
+'ymr' is a CLI tool that generates YAML files from a spec and one or
+more templates. It replaces values in the templates marked with
+'# from-param: {{ .var }}' or '# from-param-merge: {{ .var }}'
 with values from the spec.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		_ = cmd.Help()
