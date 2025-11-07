@@ -148,7 +148,7 @@ ymr run -t "github.com/owner/repo/path/to/template.yaml" -o rendered --param myV
     replicas: 3
     ```
 
-*   **`# from-param-merge: <name>`**: Merges the YAML structure defined by the parameter `<name>` into the current location. This is useful for injecting complex objects or lists.
+*   **`# from-param-merge: {{ .var }}`**: Merges the YAML structure defined by the parameter `{{ .var }}` into the current location. This is useful for injecting complex objects or lists.
 
     **Template:**
     ```yaml
