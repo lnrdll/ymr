@@ -133,7 +133,7 @@ ymr run -t "github.com/owner/repo/path/to/template.yaml" -o rendered --param myV
 
 `ymr` uses special comments within your YAML templates to identify where parameters should be injected.
 
-*   **`# from-param: <name>`**: Replaces the entire line (or value) with the value of the parameter `<name>`.
+*   **`# from-param: {{ .var }}`**: Replaces the entire line (or value) with the value of the parameter `{{ .var }}`.
 
     **Template:**
     ```yaml
@@ -153,7 +153,7 @@ ymr run -t "github.com/owner/repo/path/to/template.yaml" -o rendered --param myV
     **Template:**
     ```yaml
     metadata:
-      labels: # from-param-merge: commonLabels
+      labels: # from-param-merge: {{ .commonLabels }}
         app: my-app      
     ```
     **`spec.yaml` parameter:**
