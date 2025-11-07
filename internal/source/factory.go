@@ -71,21 +71,37 @@ func NewSourceLoader(path string, token string) (SourceLoader, error) {
 	return nil, fmt.Errorf("could not determine source type for path: %s", path)
 }
 
-// LoadTemplate handles loading template content from either a remote URL or a local file.
-func LoadTemplate(templatePath string, token string) ([]byte, error) {
-	// 1. Check for absolute HTTP(S) URL
+func LoadTemplate(loader SourceLoader, templatePath string, token string) ([]byte, error) {
+	// 1. If templatePath is an absolute URL, fetch it directly.
 	if isRemotePath(templatePath) {
 		return FetchHTTP(templatePath, token, false)
 	}
 
-	// 2. It's not a remote path, so treat it as a local file
-	// relative to the CLI's current working directory.
-	if stat, err := os.Stat(templatePath); err == nil && !stat.IsDir() {
-		return os.ReadFile(templatePath)
-	} else if err != nil {
+	// 2. Determine the base path from the loader type.
+	var basePath string
+	switch l := loader.(type) {
+	case *LocalLoader:
+		basePath = l.BaseDir
+	case *GithubLoader:
+		basePath = l.getRawURL("")
+	case *HTTPLoader:
+		basePath = l.getBaseURL()
+	default:
+		// Fallback to CWD if loader type is unknown or nil.
 		cwd, _ := os.Getwd()
-		return nil, fmt.Errorf("template '%s' not found locally (CWD: %s): %w", templatePath, cwd, err)
-	} else {
-		return nil, fmt.Errorf("template path '%s' is a directory", templatePath)
+		basePath = cwd
 	}
+
+	// 3. Join the base path with the relative template path.
+	// For remote paths, this correctly resolves relative URLs.
+	finalPath, err := url.JoinPath(basePath, templatePath)
+	if err != nil {
+		return nil, fmt.Errorf("error joining path: %w", err)
+	}
+
+	// 4. Fetch the content.
+	if isRemotePath(finalPath) {
+		return FetchHTTP(finalPath, token, false)
+	}
+	return os.ReadFile(finalPath)
 }

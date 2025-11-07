@@ -4,7 +4,7 @@ kind: Config
 # A list of templates to process.
 # Paths are relative to the location of this spec.yaml.
 templates:
-  - example/gcp-cloud-run-local/service.yaml
+  - service.yaml
 
 # A simple list of target environments.
 targetIds:

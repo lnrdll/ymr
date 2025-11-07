@@ -113,7 +113,17 @@ func Run(cfg Config) error {
 	// 9. Process each template against each target
 	allOutputs := []processor.RenderedOutput{}
 	for _, templatePath := range specConfig.Templates {
-		templateContent, err := source.LoadTemplate(templatePath, token)
+		var templateContent []byte
+		var err error
+
+		// If a template is specified via CLI flag, it should be loaded relative to the CWD.
+		// Passing a nil loader to LoadTemplate signals that it should use the CWD as the base path.
+		if cfg.OverrideTemplate != "" && templatePath == cfg.OverrideTemplate {
+			templateContent, err = source.LoadTemplate(nil, templatePath, token)
+		} else {
+			templateContent, err = source.LoadTemplate(loader, templatePath, token)
+		}
+
 		if err != nil {
 			slog.Debug(fmt.Sprintf("Skipping template '%s' due to error: %v", templatePath, err))
 			continue
