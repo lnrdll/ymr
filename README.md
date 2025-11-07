@@ -15,8 +15,8 @@
 
 `ymr` processes YAML templates by replacing specific placeholders with values from your `spec.yaml`. It supports two primary types of placeholders:
 
-*   `# from-param: <name>`: Replaces the entire value with the parameter `<name>`.
-*   `# from-param-merge: <name>`: Merges the parameter `<name>` into the existing YAML structure.
+*   `# from-param: {{ .var }}`: Replaces the entire value with the parameter `{{ .var }}`.
+*   `# from-param-merge: {{ .var }}`: Merges the parameter `{{ .var }}` into the existing YAML structure.
 
 This allows for powerful and dynamic configuration generation, enabling you to define common values and override them for specific targets or environments.
 
@@ -137,7 +137,7 @@ ymr run -t "github.com/owner/repo/path/to/template.yaml" -o rendered --param myV
 
     **Template:**
     ```yaml
-    replicas: 1 # from-param: minScale
+    replicas: 1 # from-param: {{ .minScale }}
     ```
     **`spec.yaml` parameter:**
     ```yaml
@@ -153,9 +153,8 @@ ymr run -t "github.com/owner/repo/path/to/template.yaml" -o rendered --param myV
     **Template:**
     ```yaml
     metadata:
-      labels:
-        app: my-app
-        # from-param-merge: commonLabels
+      labels: # from-param-merge: commonLabels
+        app: my-app      
     ```
     **`spec.yaml` parameter:**
     ```yaml
