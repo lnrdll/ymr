@@ -2,9 +2,9 @@ package spec
 
 import (
 	"fmt"
+	"maps"
 	"strconv"
 	"strings"
-	"maps"
 )
 
 // BuildParamLookup transforms the Parameters list into a easy-to-use map

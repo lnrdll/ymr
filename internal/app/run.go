@@ -113,7 +113,7 @@ func Run(cfg Config) error {
 	// 9. Process each template against each target
 	allOutputs := []processor.RenderedOutput{}
 	for _, templatePath := range specConfig.Templates {
-		templateContent, err := loader.LoadTemplate(templatePath, token)
+		templateContent, err := source.LoadTemplate(templatePath, token)
 		if err != nil {
 			slog.Debug(fmt.Sprintf("Skipping template '%s' due to error: %v", templatePath, err))
 			continue

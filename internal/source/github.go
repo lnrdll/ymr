@@ -3,7 +3,6 @@ package source
 import (
 	"fmt"
 	"path"
-	"ymr/internal/fetch"
 	"ymr/internal/spec"
 )
 
@@ -21,13 +20,9 @@ func (g *GithubLoader) getRawURL(filePath string) string {
 
 func (g *GithubLoader) LoadSpec(token string) (*spec.SpecConfig, error) {
 	specURL := g.getRawURL("spec.yaml")
-	content, err := fetch.FetchHTTP(specURL, token, true)
+	content, err := FetchHTTP(specURL, token, true)
 	if err != nil {
 		return nil, fmt.Errorf("fetching spec from %s: %w", specURL, err)
 	}
 	return parseSpec(content)
-}
-
-func (g *GithubLoader) LoadTemplate(templatePath string, token string) ([]byte, error) {
-	return loadTemplateContent(templatePath, token)
 }

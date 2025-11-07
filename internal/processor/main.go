@@ -10,8 +10,12 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Regex captures the directive and capture **everything** after the colon to the end of the line.
+// 1. The "full" regex for capturing the entire template string
 var paramCommentRegex = regexp.MustCompile(`(from-param|from-param-merge):\s*(.+)`)
+
+//  2. A "simple" regex to detect if the template is *only* a key lookup
+//     It matches "{{ .key }}" or "{{.key}}"
+var simpleTemplateRegex = regexp.MustCompile(`^\s*{{\s*\.([a-zA-Z0-9_.-]+)\s*}}\s*$`)
 
 // ProcessContent takes template content and substitutes params
 func ProcessContent(templateContent []byte, params map[string]any) (string, error) {
@@ -35,11 +39,10 @@ func ProcessContent(templateContent []byte, params map[string]any) (string, erro
 }
 
 // traverse recursively visits every node in the YAML tree, handling
-// map keys and values correctly.
+// map keys and values.
 func traverse(node *yaml.Node, params map[string]any) {
 	switch node.Kind {
 	case yaml.DocumentNode:
-		// Recurse into the document's content
 		for _, child := range node.Content {
 			traverse(child, params)
 		}
@@ -50,31 +53,17 @@ func traverse(node *yaml.Node, params map[string]any) {
 			valueNode := node.Content[i+1]
 
 			if keyNode.LineComment != "" {
-				directive, templateString := parseParamFromComment(keyNode.LineComment)
-				if templateString != "" {
-					renderedValue, err := executeTemplate(templateString, params)
-					if err == nil {
-						updateNodeValue(valueNode, renderedValue, directive)
-					} else {
-						slog.Debug("Template key missing, preserving default", "template", templateString, "error", err)
-					}
-
-					// Always clear the comment
+				directive, rawString := parseParamFromComment(keyNode.LineComment)
+				if rawString != "" {
+					processDirective(valueNode, directive, rawString, params)
 					keyNode.LineComment = ""
 				}
 			}
 
 			if valueNode.LineComment != "" {
-				directive, templateString := parseParamFromComment(valueNode.LineComment)
-				if templateString != "" {
-					renderedValue, err := executeTemplate(templateString, params)
-					if err == nil {
-						updateNodeValue(valueNode, renderedValue, directive)
-					} else {
-						slog.Debug("Template value missing, preserving default", "template", templateString, "error", err)
-					}
-
-					// Always clear the comment
+				directive, rawString := parseParamFromComment(valueNode.LineComment)
+				if rawString != "" {
+					processDirective(valueNode, directive, rawString, params)
 					valueNode.LineComment = ""
 				}
 			}
@@ -82,28 +71,43 @@ func traverse(node *yaml.Node, params map[string]any) {
 			traverse(keyNode, params)
 			traverse(valueNode, params)
 		}
+
 	case yaml.SequenceNode:
-		// Handle sequences (arrays)
 		for _, child := range node.Content {
 			if child.LineComment != "" {
-				directive, templateString := parseParamFromComment(child.LineComment)
-				if templateString != "" {
-					renderedValue, err := executeTemplate(templateString, params)
-					if err == nil {
-						updateNodeValue(child, renderedValue, directive)
-					} else {
-						slog.Debug("Template key missing, preserving default", "template", templateString, "error", err)
-					}
-
-					// Always clear the comment
-					child.LineComment = ""
+				directive, rawString := parseParamFromComment(child.LineComment)
+				if rawString != "" {
+					processDirective(child, directive, rawString, params)
+					child.LineComment = "" // Always clear comment
 				}
 			}
 			traverse(child, params)
 		}
+	}
+}
 
-		// The leaves of the tree
-		// Scalar nodes (strings, numbers, etc.) have no children, so recursion stops.
+// This helper function now contains the "smart" logic.
+func processDirective(node *yaml.Node, directive, rawString string, params map[string]any) {
+	// 1. Check if it's a *simple* template (e.g., "{{ .envVars }}")
+	if matches := simpleTemplateRegex.FindStringSubmatch(rawString); len(matches) > 1 {
+		paramName := matches[1]
+		if value, ok := params[paramName]; ok {
+			// It's a simple key. Pass the raw interface{} value.
+			// This preserves arrays/maps/objects.
+			updateNodeValue(node, value, directive)
+			return
+		} else {
+			slog.Debug("Template key missing, preserving default", "key", paramName)
+			return
+		}
+	}
+
+	// 2. It's a *complex* template (e.g., "image-{{ .env }}")
+	renderedValue, err := executeTemplate(rawString, params)
+	if err == nil {
+		updateNodeValue(node, renderedValue, directive)
+	} else {
+		slog.Debug("Template failed, preserving default", "template", rawString, "error", err)
 	}
 }
 
@@ -118,38 +122,11 @@ func parseParamFromComment(comment string) (directive, paramName string) {
 
 // updateNodeValue updates a yaml.Node with a new value, handling merge/replace
 func updateNodeValue(node *yaml.Node, newValue any, directive string) {
-	var replacementNode *yaml.Node
-
-	// 'newValue' is the *rendered string* (e.g., "1", "true", "my-string").
-	// We need to parse this string as YAML to get the correct type (number, bool, string).
-	if strVal, ok := newValue.(string); ok {
-		var tempNode yaml.Node
-		// Unmarshal the string value *as* a YAML scalar
-		if err := yaml.Unmarshal([]byte(strVal), &tempNode); err == nil && tempNode.Kind == yaml.DocumentNode {
-			replacementNode = tempNode.Content[0] // Get the scalar node
-		}
-	}
-
-	// If the above failed or newValue was not a string (e.g., complex map from merge),
-	// fall back to the old method.
-	if replacementNode == nil {
-		tempYAML, err := yaml.Marshal(newValue)
-		if err != nil {
-			node.Tag = "!!str"
-			node.Value = fmt.Sprintf("ERROR_MARSHALING:%v", err)
-			return
-		}
-		var tempRootNode yaml.Node
-		err = yaml.Unmarshal(tempYAML, &tempRootNode)
-		if err != nil {
-			node.Tag = "!!str"
-			node.Value = fmt.Sprintf("ERROR_UNMARSHALING:%v", err)
-			return
-		}
-		if tempRootNode.Kind != yaml.DocumentNode || len(tempRootNode.Content) == 0 {
-			return
-		}
-		replacementNode = tempRootNode.Content[0]
+	var replacementNode yaml.Node
+	err := replacementNode.Encode(newValue)
+	if err != nil {
+		node.Tag = "!!str"
+		node.Value = fmt.Sprintf("ERROR_ENCONDING:%v", err)
 	}
 
 	// (The merge/replace logic is unchanged)
@@ -173,7 +150,10 @@ func updateNodeValue(node *yaml.Node, newValue any, directive string) {
 
 // Helper function to execute the template string
 func executeTemplate(tmplStr string, params map[string]any) (string, error) {
-	tmpl, err := template.New("param").Option("missingkey=error").Parse(tmplStr)
+	tmpl, err := template.New("param").
+		Option("missingkey=error").
+		Parse(tmplStr)
+
 	if err != nil {
 		return "", fmt.Errorf("failed to parse template string %s: %w", tmplStr, err)
 	}

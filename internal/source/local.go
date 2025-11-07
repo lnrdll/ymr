@@ -19,7 +19,3 @@ func (l *LocalLoader) LoadSpec(token string) (*spec.SpecConfig, error) {
 	}
 	return parseSpec(content)
 }
-
-func (l *LocalLoader) LoadTemplate(templatePath string, token string) ([]byte, error) {
-	return loadTemplateContent(templatePath, token)
-}

@@ -1,4 +1,4 @@
-package fetch
+package source
 
 import (
 	"encoding/json"

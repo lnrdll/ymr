@@ -28,6 +28,8 @@ parameters:
       envVars:
         - name: HELLO
           value: world
+        - name: hello
+          value: WORLD
     targetId:
       - dev
 

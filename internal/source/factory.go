@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"ymr/internal/fetch"
 	"ymr/internal/spec"
 
 	"gopkg.in/yaml.v3"
@@ -29,7 +28,7 @@ func NewSourceLoader(path string, token string) (SourceLoader, error) {
 		ref := version
 		if version == "latest" {
 			var err error
-			ref, err = fetch.GetGithubDefaultBranch(user, repo, token)
+			ref, err = GetGithubDefaultBranch(user, repo, token)
 			if err != nil {
 				return nil, fmt.Errorf("could not resolve @latest for %s/%s: %w", user, repo, err)
 			}

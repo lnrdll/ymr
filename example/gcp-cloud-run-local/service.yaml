@@ -27,7 +27,7 @@ spec:
     spec:
       containerConcurrency: 80 # from-param: {{ .concurrency }}
       containers:
-      - env: # from-param-merge: envVars
+      - env: # from-param-merge: {{ .envVars }}
         - name: FOO
           value: BAR
         image: image/test:2025.10.17 # from-param: location/to/docker/image/service:{{ .version }}

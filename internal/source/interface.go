@@ -6,7 +6,4 @@ import "ymr/internal/spec"
 type SourceLoader interface {
 	// LoadSpec fetches and parses the spec.yaml file.
 	LoadSpec(token string) (*spec.SpecConfig, error)
-
-	// LoadTemplate fetches a template file.
-	LoadTemplate(templatePath string, token string) ([]byte, error)
 }
