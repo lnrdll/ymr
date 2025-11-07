@@ -10,8 +10,9 @@ import (
 )
 
 var runCmd = &cobra.Command{
-	Use:   "run [flags]",
-	Short: "Processes templates and generates output files.",
+	Use:     "run [flags]",
+	Short:   "Processes templates and generates output files.",
+	Aliases: []string{"build", "render"},
 	Long: `The 'run' command processes YAML templates based on a spec file and
 generates output files. It supports overriding parameters and targets
 via CLI flags.`,
@@ -67,8 +68,8 @@ func init() {
 
 	runCmd.PersistentFlags().StringVarP(
 		&cfg.SpecFile,
-		"file",
-		"f",
+		"spec",
+		"s",
 		"",
 		"Source path (local, dir, file, http url, or github). Defaults to ./spec.yaml)",
 	)
