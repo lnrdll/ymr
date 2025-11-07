@@ -7,14 +7,15 @@ import (
 	"path/filepath"
 	"regexp"
 	"ymr/internal/spec"
-
-	"gopkg.in/yaml.v3"
 )
 
-// Regexes for matching different source types
-var (
-	githubSourceRegex = regexp.MustCompile(`^(?:https?://)?github\.com/([^/]+)/([^/@]+)(?:/([^@]+))?@(.+)`)
-)
+// SourceLoader defines the interface for any configuration source
+type SourceLoader interface {
+	// LoadSpec fetches and parses the spec.yaml file.
+	LoadSpec(token string) (*spec.SpecConfig, error)
+}
+
+var githubSourceRegex = regexp.MustCompile(`^(?:https?://)?github\.com/([^/]+)/([^/@]+)(?:/([^@]+))?@(.+)`)
 
 // NewSourceLoader analyzes the path and returns the correct SourceLoader.
 func NewSourceLoader(path string, token string) (SourceLoader, error) {
@@ -57,7 +58,7 @@ func NewSourceLoader(path string, token string) (SourceLoader, error) {
 	}
 
 	// 3. Check for a direct HTTP(S) URL
-	if IsRemotePath(path) {
+	if isRemotePath(path) {
 		baseURL, err := url.Parse(path)
 		if err != nil {
 			return nil, fmt.Errorf("invalid http url: %w", err)
@@ -70,12 +71,21 @@ func NewSourceLoader(path string, token string) (SourceLoader, error) {
 	return nil, fmt.Errorf("could not determine source type for path: %s", path)
 }
 
-// parseSpec is a simple helper to unmarshal
-func parseSpec(content []byte) (*spec.SpecConfig, error) {
-	var config spec.SpecConfig
-	err := yaml.Unmarshal(content, &config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse spec YAML: %w", err)
+// LoadTemplate handles loading template content from either a remote URL or a local file.
+func LoadTemplate(templatePath string, token string) ([]byte, error) {
+	// 1. Check for absolute HTTP(S) URL
+	if isRemotePath(templatePath) {
+		return FetchHTTP(templatePath, token, false)
 	}
-	return &config, nil
+
+	// 2. It's not a remote path, so treat it as a local file
+	// relative to the CLI's current working directory.
+	if stat, err := os.Stat(templatePath); err == nil && !stat.IsDir() {
+		return os.ReadFile(templatePath)
+	} else if err != nil {
+		cwd, _ := os.Getwd()
+		return nil, fmt.Errorf("template '%s' not found locally (CWD: %s): %w", templatePath, cwd, err)
+	} else {
+		return nil, fmt.Errorf("template path '%s' is a directory", templatePath)
+	}
 }
