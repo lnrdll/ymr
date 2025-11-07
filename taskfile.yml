@@ -31,6 +31,7 @@ tasks:
     dir: "{{.USER_WORKING_DIR}}"
     cmds:
       - go get -u -t ./...
+      - go mod tidy
 
   clean:
     desc: Clean modules
