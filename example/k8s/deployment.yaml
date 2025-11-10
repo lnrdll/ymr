@@ -4,19 +4,19 @@ kind: Deployment
 metadata:
   name: app-deployment # from-param: {{ .name }}-deployment
   labels:
-    app: nginx
+    app: nginx # from-param: {{ .name }}
 spec:
   replicas: 1 # from-param: {{ .replicas }}
   selector:
     matchLabels:
-      app: nginx
+      app: nginx # from-param: {{ .name }}
   template:
     metadata:
       labels:
-        app: nginx
+        app: nginx # from-param: {{ .name }}
     spec:
       containers:
-        - name: nginx-container
+        - name: nginx-container # from-param: {{ .name }}-container
           image: nginx:1.26.1-alpine # from-param: {{ .image }}
           ports:
             - containerPort: 80

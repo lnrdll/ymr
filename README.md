@@ -125,7 +125,6 @@ ymr run [flags]
 *   `-p`, `--param <key=value>`: Override a parameter (e.g., `key=value`). Can be used multiple times.
 *   `--target <id>`: Override which targets to render. Can be used multiple times.
 *   `--token <token>`: GitHub token for accessing private repositories (or use `GITHUB_TOKEN` environment variable).
-*   `--debug`: Enable debug logging.
 
 **Example `ymr run` usage:**
 
@@ -134,23 +133,23 @@ ymr run [flags]
 ymr run -s spec.yaml -o rendered
 
 # Override a parameter for a specific run
-ymr run -s spec.yaml -o rendered -p minScale=5
+ymr run -s example/gcp-cloud-run -p minScale=5 -o -
 
-# Render only the 'dev' target
-ymr run -s spec.yaml -o rendered --target dev
+# Render only the 'prd' target
+ymr run -s example/gcp-cloud-run --target prd -o -
 
-# Use a GitHub template directly (requires --token for private repos)
-ymr run -t "github.com/owner/repo/path/to/template.yaml" -o rendered --param myVar=value
+# Use a GitHub repo directly (requires --token or GITHUB_TOEKN env for private repos)
+ymr run -s https://github.com/lnrdll/ymr/example/k8s@main -o -
 
 # Run in spec-less mode
-ymr run -t "path/to/template.yaml" -o rendered --target dev --param myVar=value
+ymr run -t https://github.com/lnrdll/ymr/blob/main/example/k8s/deployment.yaml --target dev -p name=example -o -
 ```
 
 ### Template Syntax
 
 `ymr` uses special comments within your YAML templates to identify where parameters should be injected.
 
-*   **`# from-param: {{ .var }}`**: Replaces the entire line (or value) with the value of the parameter `{{ .var }}`.
+*   `# from-param: {{ .var }}`: Replaces the entire value with the value of the parameter `{{ .var }}`.
 
     **Template:**
     ```yaml
@@ -165,7 +164,7 @@ ymr run -t "path/to/template.yaml" -o rendered --target dev --param myVar=value
     replicas: 3
     ```
 
-*   **`# from-param-merge: {{ .var }}`**: Merges the YAML structure defined by the parameter `{{ .var }}` into the current location. This is useful for injecting complex objects or lists.
+*   `# from-param-merge: {{ .var }}`: Merges the YAML structure defined by the parameter `{{ .var }}` into the current location. This is useful for injecting complex objects or lists.
 
     **Template:**
     ```yaml
@@ -190,7 +189,7 @@ ymr run -t "path/to/template.yaml" -o rendered --target dev --param myVar=value
 
 ### Contributing
 
-We welcome contributions to `ymr`! Please feel free to open issues or submit pull requests.
+You're welcome to open issues or submit pull requests, though responses may take some time.
 
 ### License
 
