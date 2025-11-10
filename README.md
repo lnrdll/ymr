@@ -15,9 +15,7 @@
 
 Existing YAML templating tools — such as `jtt`, `Helm`, or `Kluctl` — are powerful and versatile, but they often come with a steep learning curve and impose specific formatting or structural requirements on your YAML files.
 
-`ymr` takes a simpler, more flexible approach. Instead of replacing these tools, it’s designed to complement them. You simply add comments to your existing YAML configuration, and if they match your defined specifications, `ymr` performs the substitutions.
-
-This means you can use `ymr` with any YAML file — including those already managed by other tools — without modifying your current workflow or file structure.
+`ymr` takes a simpler, more flexible approach. You simply add comments to your existing YAML configuration, and if they match your defined specifications, `ymr` performs the substitutions. This means you can use `ymr` with any YAML file — including those already managed by other tools — without modifying your current workflow or file structure.
 
 ### How it Works
 
