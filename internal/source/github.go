@@ -2,6 +2,7 @@ package source
 
 import (
 	"fmt"
+	"log/slog"
 	"path"
 	"ymr/internal/spec"
 )
@@ -22,8 +23,10 @@ func (g *GithubLoader) getRawURL(filePath string) string {
 // LoadSpec fetches the spec file from a GitHub repository.
 func (g *GithubLoader) LoadSpec(token string) (*spec.SpecConfig, error) {
 	specURL := g.getRawURL("spec.yaml")
+	slog.Debug("Loading spec from GitHub", "specURL", specURL)
 	content, err := FetchHTTP(specURL, token, true)
 	if err != nil {
+		slog.Debug("Failed to fetch spec from GitHub", "specURL", specURL, "error", err)
 		return nil, fmt.Errorf("fetching spec from %s: %w", specURL, err)
 	}
 	return parseSpec(content)

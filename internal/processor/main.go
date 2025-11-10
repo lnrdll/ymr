@@ -21,6 +21,7 @@ func ProcessContent(templateContent []byte, params map[string]any) (string, erro
 	var rootNode yaml.Node
 	err := yaml.Unmarshal(templateContent, &rootNode)
 	if err != nil {
+		slog.Debug("Failed to parse template YAML", "error", err)
 		return "", fmt.Errorf("failed to parse template yaml: %w", err)
 	}
 
@@ -31,6 +32,7 @@ func ProcessContent(templateContent []byte, params map[string]any) (string, erro
 	encoder.SetIndent(2)
 	err = encoder.Encode(&rootNode)
 	if err != nil {
+		slog.Debug("Failed to re-marshal YAML", "error", err)
 		return "", fmt.Errorf("failed to re-marshal yaml: %w", err)
 	}
 
@@ -39,6 +41,7 @@ func ProcessContent(templateContent []byte, params map[string]any) (string, erro
 
 // traverse recursively visits every node in the YAML tree, handling map keys and values.
 func traverse(node *yaml.Node, params map[string]any) {
+	slog.Debug("Traversing node", "kind", node.Kind, "tag", node.Tag, "value", node.Value)
 	switch node.Kind {
 	case yaml.DocumentNode:
 		for _, child := range node.Content {
@@ -87,6 +90,7 @@ func traverse(node *yaml.Node, params map[string]any) {
 // processDirective determines whether to perform a simple key lookup or a full template execution.
 // It updates the provided yaml.Node with the processed value.
 func processDirective(node *yaml.Node, directive, rawString string, params map[string]any) {
+	slog.Debug("Processing directive", "directive", directive, "rawString", rawString)
 	// Check if it's a *simple* template (e.g., "{{ .envVars }}")
 	if matches := simpleTemplateRegex.FindStringSubmatch(rawString); len(matches) > 1 {
 		paramName := matches[1]
@@ -124,6 +128,7 @@ func updateNodeValue(node *yaml.Node, newValue any, directive string) {
 	var replacementNode yaml.Node
 	err := replacementNode.Encode(newValue)
 	if err != nil {
+		slog.Debug("Failed to encode replacement node", "error", err, "newValue", newValue)
 		node.Tag = "!!str"
 		node.Value = fmt.Sprintf("ERROR_ENCONDING:%v", err)
 	}
@@ -154,12 +159,14 @@ func executeTemplate(tmplStr string, params map[string]any) (string, error) {
 		Parse(tmplStr)
 
 	if err != nil {
+		slog.Debug("Failed to parse template string", "template", tmplStr, "error", err)
 		return "", fmt.Errorf("failed to parse template string %s: %w", tmplStr, err)
 	}
 
 	var buf bytes.Buffer
 	err = tmpl.Execute(&buf, params)
 	if err != nil {
+		slog.Debug("Failed to execute template", "template", tmplStr, "error", err)
 		return "", fmt.Errorf("failed to execute template %s: %w", tmplStr, err)
 	}
 

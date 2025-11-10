@@ -2,6 +2,7 @@ package source
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"ymr/internal/spec"
 )
@@ -14,8 +15,10 @@ type LocalLoader struct {
 
 // LoadSpec reads the spec file from the local filesystem.
 func (l *LocalLoader) LoadSpec(token string) (*spec.SpecConfig, error) {
+	slog.Debug("Loading spec from local filesystem", "specPath", l.SpecPath)
 	content, err := os.ReadFile(l.SpecPath)
 	if err != nil {
+		slog.Debug("Failed to read local spec", "specPath", l.SpecPath, "error", err)
 		return nil, fmt.Errorf("reading local spec %s: %w", l.SpecPath, err)
 	}
 	return parseSpec(content)

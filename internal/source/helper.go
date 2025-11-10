@@ -2,6 +2,7 @@ package source
 
 import (
 	"fmt"
+	"log/slog"
 	"regexp"
 	"ymr/internal/spec"
 
@@ -25,9 +26,11 @@ func isRemotePath(path string) bool {
 
 // parseSpec unmarshals the spec file content into a SpecConfig struct.
 func parseSpec(content []byte) (*spec.SpecConfig, error) {
+	slog.Debug("Parsing spec content")
 	var config spec.SpecConfig
 	err := yaml.Unmarshal(content, &config)
 	if err != nil {
+		slog.Debug("Failed to parse spec YAML", "error", err)
 		return nil, fmt.Errorf("failed to parse spec YAML: %w", err)
 	}
 	return &config, nil
@@ -35,10 +38,13 @@ func parseSpec(content []byte) (*spec.SpecConfig, error) {
 
 // transformURL converts GitHub blob and repo URLs to raw content URLs.
 func transformURL(path string, isSpec bool) string {
+	slog.Debug("Transforming URL", "originalURL", path, "isSpec", isSpec)
 	// Check for `github.com/user/repo/blob/branch/path`
 	if matches := githubBlobRegex.FindStringSubmatch(path); len(matches) == 5 {
 		// Transform to: raw.githubusercontent.com/user/repo/branch/path
-		return fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", matches[1], matches[2], matches[3], matches[4])
+		transformedURL := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", matches[1], matches[2], matches[3], matches[4])
+		slog.Debug("Transformed GitHub blob URL", "original", path, "transformed", transformedURL)
+		return transformedURL
 	}
 
 	// Check for `github.com/user/repo` or `.../tree/branch` (ONLY if loading a spec)
@@ -51,8 +57,11 @@ func transformURL(path string, isSpec bool) string {
 				branch = matches[3]
 			}
 			// Transform to: raw.githubusercontent.com/user/repo/branch/spec.yaml
-			return fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/spec.yaml", user, repo, branch)
+			transformedURL := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/spec.yaml", user, repo, branch)
+			slog.Debug("Transformed GitHub repo URL for spec", "original", path, "transformed", transformedURL)
+			return transformedURL
 		}
 	}
+	slog.Debug("No URL transformation applied", "url", path)
 	return path
 }
