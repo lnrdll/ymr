@@ -1,6 +1,3 @@
-apiVersion: ymr/v1
-kind: Config
-
 # A list of templates to process.
 # Paths are relative to the location of this spec.yaml.
 templates:

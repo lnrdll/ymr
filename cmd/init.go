@@ -8,10 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const boilerplateSpec = `apiVersion: ymr/v1
-kind: Config
-
-# A list of templates to process.
+const boilerplateSpec = `# A list of templates to process.
 # Paths are relative to the location of this spec.yaml.
 templates:
   - base/service.yaml
