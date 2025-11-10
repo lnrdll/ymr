@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// BuildParamLookup transforms the Parameters list into a easy-to-use map
+// BuildParamLookup transforms the list of parameter sets into a nested map for easy lookups.
 func BuildParamLookup(spec *SpecConfig) map[string]map[string]any {
 	lookup := make(map[string]map[string]any)
 
@@ -23,7 +23,7 @@ func BuildParamLookup(spec *SpecConfig) map[string]map[string]any {
 	return lookup
 }
 
-// ParseCliParams parses key-value pairs from the CLI and attempts to infer types
+// ParseCliParams parses command-line parameters into a map, inferring types.
 func ParseCliParams(params []string) (map[string]any, error) {
 	overrides := make(map[string]any)
 

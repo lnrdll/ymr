@@ -12,11 +12,12 @@ type HTTPLoader struct {
 	SpecURL *url.URL
 }
 
+// getBaseURL returns the base URL for resolving relative template paths.
 func (h *HTTPLoader) getBaseURL() string {
-	// Return the URL of the directory containing the spec file.
 	return path.Dir(h.SpecURL.String())
 }
 
+// LoadSpec fetches the spec file from a remote HTTP URL.
 func (h *HTTPLoader) LoadSpec(token string) (*spec.SpecConfig, error) {
 	content, err := FetchHTTP(h.SpecURL.String(), token, true)
 	if err != nil {

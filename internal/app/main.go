@@ -13,30 +13,27 @@ import (
 	"ymr/internal/spec"
 )
 
-const TerminalOutputSentinel = "-"
-
 // applyCliOverrides applies CLI provided parameter overrides to a given parameter map.
 func applyCliOverrides(paramMap map[string]any, cliOverrides map[string]any) {
 	maps.Copy(paramMap, cliOverrides)
 }
 
-// Run is the main entrypoint for the application logic
+// Run is the main entrypoint for the application logic.
 func Run(cfg Config) error {
-	// 1. Get Github Token if available
 	token := cfg.GithubToken
 	if token == "" {
 		token = os.Getenv("GITHUB_TOKEN")
 	}
 
-	// 2. Handle output dir/'-o -' logic
+	// Handle output dir/'-o -' logic
 	terminalOutput := false
 	outputDir := cfg.OutputDir
-	if outputDir == TerminalOutputSentinel {
+	if outputDir == "-" {
 		terminalOutput = true
 		outputDir = ""
 	}
 
-	// 3. Load the specs
+	// Load the specs
 	var specConfig *spec.SpecConfig
 	var loader source.SourceLoader
 	var err error
@@ -68,16 +65,16 @@ func Run(cfg Config) error {
 		loader = &source.LocalLoader{BaseDir: cwd, SpecPath: ""}
 	}
 
-	// 5. (Override) Handle CLI template override
+	// (Override) Handle CLI template override
 	if cfg.OverrideTemplate != "" {
 		specConfig.Templates = []string{cfg.OverrideTemplate}
 		slog.Debug("Overriding templates", "template", cfg.OverrideTemplate)
 	}
 
-	// 6. Build the parameter map
+	// Build the parameter map
 	paramLookup := spec.BuildParamLookup(specConfig)
 
-	// 7. (Override) Parse and apply CLI parameters
+	// (Override) Parse and apply CLI parameters
 	cliOverrides, err := spec.ParseCliParams(cfg.OverrideParams)
 	if err != nil {
 		return fmt.Errorf("parsing override parameters: %w", err)
@@ -91,7 +88,7 @@ func Run(cfg Config) error {
 		}
 	}
 
-	// 8. (Override) Filter targets
+	// (Override) Filter targets
 	targetsToRender := specConfig.TargetIds
 	if len(cfg.OverrideTargets) > 0 {
 		filteredTargets := make([]string, 0)
@@ -110,7 +107,7 @@ func Run(cfg Config) error {
 		slog.Debug("Rendering all targets", "count", len(targetsToRender))
 	}
 
-	// 9. Process each template against each target
+	// Process each template against each target
 	allOutputs := []processor.RenderedOutput{}
 	for _, templatePath := range specConfig.Templates {
 		var templateContent []byte
@@ -138,13 +135,12 @@ func Run(cfg Config) error {
 			if !ok {
 				params = make(map[string]any)
 			}
-			// Apply CLI overrides to newly created param map for targets not in spec
+
 			if len(cliOverrides) > 0 && !ok {
 				applyCliOverrides(params, cliOverrides)
 			}
 
 			renderedYaml, err := processor.ProcessContent(templateContent, params)
-
 			if err != nil {
 				slog.Debug(fmt.Sprintf("Skipping template '%s' for target '%s' due to error: %v", templatePath, targetId, err))
 				continue
@@ -160,13 +156,13 @@ func Run(cfg Config) error {
 		}
 	}
 
-	// 10. Handle Output
+	// Handle Output
 	return handleOutput(allOutputs, terminalOutput, outputDir)
 }
 
-// handleOutput writes files to disk or prints to stdout
+// handleOutput writes rendered content to files or to the console.
+// It creates the output directory if it doesn't exist.
 func handleOutput(outputs []processor.RenderedOutput, terminalOutput bool, outputDir string) error {
-	// print to terminal
 	if terminalOutput {
 		for _, output := range outputs {
 			fmt.Println(output.Content)

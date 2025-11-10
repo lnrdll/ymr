@@ -1,13 +1,12 @@
 package source
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 )
 
-// FetchHTTP fetches a raw URL with an optional auth token.
+// FetchHTTP fetches content from a URL, with optional GitHub token authentication.
 func FetchHTTP(url string, token string, isSpec bool) ([]byte, error) {
 	transformedURL := transformURL(url, isSpec)
 
@@ -38,47 +37,4 @@ func FetchHTTP(url string, token string, isSpec bool) ([]byte, error) {
 		return nil, fmt.Errorf("bad response from server for %s: %s", transformedURL, resp.Status)
 	}
 	return io.ReadAll(resp.Body)
-}
-
-// GetGithubDefaultBranch fetches the default branch name from the GitHub API.
-func GetGithubDefaultBranch(user, repo, token string) (string, error) {
-	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s", user, repo)
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", apiURL, nil)
-	if err != nil {
-		return "", fmt.Errorf("creating API request: %w", err)
-	}
-
-	if token != "" {
-		req.Header.Add("Authorization", "Bearer "+token)
-	}
-	req.Header.Add("Accept", "application/vnd.github.v3+json")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("calling GitHub API: %w", err)
-	}
-	defer func() {
-		if cerr := resp.Body.Close(); cerr != nil {
-			if err == nil {
-				err = cerr
-			}
-		}
-	}()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("GitHub API request failed: %s", resp.Status)
-	}
-
-	var repoInfo struct {
-		DefaultBranch string `json:"default_branch"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&repoInfo); err != nil {
-		return "", fmt.Errorf("parsing GitHub API response: %w", err)
-	}
-
-	if repoInfo.DefaultBranch == "" {
-		return "", fmt.Errorf("could not determine default branch for %s/%s", user, repo)
-	}
-	return repoInfo.DefaultBranch, nil
 }

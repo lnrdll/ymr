@@ -10,14 +10,13 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// 1. The "full" regex for capturing the entire template string
+// The "full" regex for capturing the entire template string
 var paramCommentRegex = regexp.MustCompile(`(from-param|from-param-merge):\s*(.+)`)
 
-//  2. A "simple" regex to detect if the template is *only* a key lookup
-//     It matches "{{ .key }}" or "{{.key}}"
+// A "simple" regex to detect if the template is a key lookup. It matches "{{ .key }}" or "{{.key}}"
 var simpleTemplateRegex = regexp.MustCompile(`^\s*{{\s*\.([a-zA-Z0-9_.-]+)\s*}}\s*$`)
 
-// ProcessContent takes template content and substitutes params
+// ProcessContent takes template content and substitutes params.
 func ProcessContent(templateContent []byte, params map[string]any) (string, error) {
 	var rootNode yaml.Node
 	err := yaml.Unmarshal(templateContent, &rootNode)
@@ -38,8 +37,7 @@ func ProcessContent(templateContent []byte, params map[string]any) (string, erro
 	return b.String(), nil
 }
 
-// traverse recursively visits every node in the YAML tree, handling
-// map keys and values.
+// traverse recursively visits every node in the YAML tree, handling map keys and values.
 func traverse(node *yaml.Node, params map[string]any) {
 	switch node.Kind {
 	case yaml.DocumentNode:
@@ -78,7 +76,7 @@ func traverse(node *yaml.Node, params map[string]any) {
 				directive, rawString := parseParamFromComment(child.LineComment)
 				if rawString != "" {
 					processDirective(child, directive, rawString, params)
-					child.LineComment = "" // Always clear comment
+					child.LineComment = ""
 				}
 			}
 			traverse(child, params)
@@ -86,9 +84,10 @@ func traverse(node *yaml.Node, params map[string]any) {
 	}
 }
 
-// This helper function now contains the "smart" logic.
+// processDirective determines whether to perform a simple key lookup or a full template execution.
+// It updates the provided yaml.Node with the processed value.
 func processDirective(node *yaml.Node, directive, rawString string, params map[string]any) {
-	// 1. Check if it's a *simple* template (e.g., "{{ .envVars }}")
+	// Check if it's a *simple* template (e.g., "{{ .envVars }}")
 	if matches := simpleTemplateRegex.FindStringSubmatch(rawString); len(matches) > 1 {
 		paramName := matches[1]
 		if value, ok := params[paramName]; ok {
@@ -102,7 +101,7 @@ func processDirective(node *yaml.Node, directive, rawString string, params map[s
 		}
 	}
 
-	// 2. It's a *complex* template (e.g., "image-{{ .env }}")
+	// Check if it's a *complex* template (e.g., "image-{{ .env }}")
 	renderedValue, err := executeTemplate(rawString, params)
 	if err == nil {
 		updateNodeValue(node, renderedValue, directive)
@@ -111,7 +110,7 @@ func processDirective(node *yaml.Node, directive, rawString string, params map[s
 	}
 }
 
-// parseParamFromContent checks a comment string for the directive and param name
+// parseParamFromComment checks a comment string for the directive and param name.
 func parseParamFromComment(comment string) (directive, paramName string) {
 	matches := paramCommentRegex.FindStringSubmatch(comment)
 	if len(matches) > 2 {
@@ -120,7 +119,7 @@ func parseParamFromComment(comment string) (directive, paramName string) {
 	return "", ""
 }
 
-// updateNodeValue updates a yaml.Node with a new value, handling merge/replace
+// updateNodeValue updates a yaml.Node with a new value, handling merge/replace logic.
 func updateNodeValue(node *yaml.Node, newValue any, directive string) {
 	var replacementNode yaml.Node
 	err := replacementNode.Encode(newValue)
@@ -129,7 +128,7 @@ func updateNodeValue(node *yaml.Node, newValue any, directive string) {
 		node.Value = fmt.Sprintf("ERROR_ENCONDING:%v", err)
 	}
 
-	// (The merge/replace logic is unchanged)
+	// The merge/replace logic
 	isMerge := directive == "from-param-merge"
 	isNodeSequence := node.Kind == yaml.SequenceNode
 	isReplacementSequence := replacementNode.Kind == yaml.SequenceNode
@@ -148,7 +147,7 @@ func updateNodeValue(node *yaml.Node, newValue any, directive string) {
 	}
 }
 
-// Helper function to execute the template string
+// executeTemplate renders a Go template string with the provided parameters.
 func executeTemplate(tmplStr string, params map[string]any) (string, error) {
 	tmpl, err := template.New("param").
 		Option("missingkey=error").

@@ -9,7 +9,13 @@
 
 ## YAML Template Tool
 
-`ymr` (pronounced "yammer") is a flexible, spec-driven command-line interface (CLI) tool designed to simplify the generation of YAML files from templates. It's particularly useful for managing configurations across different environments or targets by replacing placeholders in your templates with values defined in a central `spec.yaml` file.
+`ymr` (pronounced "ya·mr") is a flexible, spec-driven command-line interface (CLI) tool designed to simplify the generation of YAML files from templates. It's particularly useful for managing configurations across different environments or targets by replacing placeholders in your templates with values defined in a central `spec.yaml` file.
+
+### Why?
+
+There are many tools available for YAML templating — such as `jtt`, `Helm`, `Kluctl`, and others — and they are all powerful solutions in their own right. These tools serve important purposes and handle complex use cases very effectively. However, they often come with a steep learning curve and typically require your YAML files to follow their specific formatting rules.
+
+`ymr` takes a simpler, more lightweight approach. Instead of replacing these tools, its intent is to complement them (if you may choose). You simply add comments to your YAML configuration, and if they match your specifications, `ymr` makes the substitutions. This allows you to use it with any YAML file — even those already used by other tools — without having to change your existing setup or workflow.
 
 ### How it Works
 
@@ -18,7 +24,17 @@
 *   `# from-param: {{ .var }}`: Replaces the entire value with the parameter `{{ .var }}`.
 *   `# from-param-merge: {{ .var }}`: Merges the parameter `{{ .var }}` into the existing YAML structure.
 
-This allows for powerful and dynamic configuration generation, enabling you to define common values and override them for specific targets or environments.
+This allows for a dynamic configuration generation, enabling you to define common values and override them for specific targets or environments.
+
+### Spec-less Mode
+
+`ymr` can be run without a `spec.yaml` file, which is useful for simple, one-off template rendering. In this mode, you must provide:
+
+*   A template file/URL via the `--template` (`-t`) flag.
+*   At least one target ID via the `--target` flag.
+*   At least one parameter via the `--param` (`-p`) flag.
+
+This mode is ideal for CI/CD pipelines or simple scripts where a full `spec.yaml` is unnecessary.
 
 ### Features
 
@@ -105,7 +121,7 @@ ymr run [flags]
 
 **Flags:**
 
-*   `-f`, `--file <path>`: Source path for the `spec.yaml` (local, dir, file, http url, or github). Defaults to `./spec.yaml`.
+*   `-s`, `--spec <path>`: Source path for the `spec.yaml` (local, dir, file, http url, or github). Defaults to `./spec.yaml`.
 *   `-t`, `--template <path>`: A single template file/URL to override the `templates` list in the spec.
 *   `-o`, `--output <directory>`: Output directory for rendered files. Use `-` for stdout.
 *   `-p`, `--param <key=value>`: Override a parameter (e.g., `key=value`). Can be used multiple times.
@@ -117,16 +133,19 @@ ymr run [flags]
 
 ```bash
 # Process spec.yaml and output to the 'rendered' directory
-ymr run -f spec.yaml -o rendered
+ymr run -s spec.yaml -o rendered
 
 # Override a parameter for a specific run
-ymr run -f spec.yaml -o rendered -p minScale=5
+ymr run -s spec.yaml -o rendered -p minScale=5
 
 # Render only the 'dev' target
-ymr run -f spec.yaml -o rendered --target dev
+ymr run -s spec.yaml -o rendered --target dev
 
 # Use a GitHub template directly (requires --token for private repos)
 ymr run -t "github.com/owner/repo/path/to/template.yaml" -o rendered --param myVar=value
+
+# Run in spec-less mode
+ymr run -t "path/to/template.yaml" -o rendered --target dev --param myVar=value
 ```
 
 ### Template Syntax
@@ -137,11 +156,11 @@ ymr run -t "github.com/owner/repo/path/to/template.yaml" -o rendered --param myV
 
     **Template:**
     ```yaml
-    replicas: 1 # from-param: {{ .minScale }}
+    replicas: 1 # from-param: {{ .replicas }}
     ```
     **`spec.yaml` parameter:**
     ```yaml
-    minScale: 3
+    replicas: 3
     ```
     **Output:**
     ```yaml
@@ -154,7 +173,7 @@ ymr run -t "github.com/owner/repo/path/to/template.yaml" -o rendered --param myV
     ```yaml
     metadata:
       labels: # from-param-merge: {{ .commonLabels }}
-        app: my-app      
+        app: my-app
     ```
     **`spec.yaml` parameter:**
     ```yaml

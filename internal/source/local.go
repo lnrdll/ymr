@@ -12,6 +12,7 @@ type LocalLoader struct {
 	SpecPath string
 }
 
+// LoadSpec reads the spec file from the local filesystem.
 func (l *LocalLoader) LoadSpec(token string) (*spec.SpecConfig, error) {
 	content, err := os.ReadFile(l.SpecPath)
 	if err != nil {

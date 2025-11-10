@@ -31,13 +31,10 @@ via CLI flags.`,
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if cfg.SpecFile == "" {
-			// No spec file explicitly provided.
-			// 1. Check if the default 'spec.yaml' exists locally.
 			if _, err := os.Stat("spec.yaml"); err == nil {
-				cfg.SpecFile = "spec.yaml" // Default exists, use it.
+				cfg.SpecFile = "spec.yaml"
 			} else {
-				// 2. No default spec.yaml. We are in spec-less mode.
-				// We *must* have a template and at least one target.
+				// No default spec.yaml. We are in spec-less mode.
 				if cfg.OverrideTemplate == "" {
 					_ = cmd.Help()
 					fmt.Fprintf(os.Stderr, "\nError: in spec-less mode (no -f flag or spec.yaml), --template (-t) is required.\n")

@@ -60,17 +60,16 @@ func init() {
 	rootCmd.AddCommand(initCmd)
 }
 
+// runInit generates a boilerplate spec.yaml file in the current directory.
 func runInit(cmd *cobra.Command, args []string) {
 	specFile := "spec.yaml"
 
-	// 1. Check if file already exists
 	if _, err := os.Stat(specFile); err == nil {
 		// TODO
 		slog.Error(specFile + "already exists in this directory.")
 		os.Exit(1)
 	}
 
-	// 2. Write the boilerplate content
 	err := os.WriteFile(specFile, []byte(boilerplateSpec), 0644)
 	if err != nil {
 		slog.Debug(fmt.Sprintf("Error writing spec file '%s': %v", specFile, err))

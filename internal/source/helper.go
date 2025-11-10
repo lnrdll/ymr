@@ -14,13 +14,16 @@ var githubBlobRegex = regexp.MustCompile(`^https?://github\.com/([^/]+)/([^/]+)/
 // Regex for GitHub repo URLs (e.g., .../user/repo or .../user/repo/tree/branch)
 var githubRepoRegex = regexp.MustCompile(`^https?://github\.com/([^/]+)/([^/@]+)(?:/tree/([^/]+))?/?$`)
 
+// Regex for GitHub format: github.com/user/repo/subdir@version
+var githubSourceRegex = regexp.MustCompile(`^(?:https?://)?github\.com/([^/]+)/([^/@]+)(?:/([^@]+))?@(.+)`)
+
 // isRemotePath checks if a given path is an absolute remote URL.
 func isRemotePath(path string) bool {
 	// httpRegex matches absolute http or https URLs.
 	return regexp.MustCompile(`^https?://.*`).MatchString(path)
 }
 
-// parseSpec is a simple helper to unmarshal
+// parseSpec unmarshals the spec file content into a SpecConfig struct.
 func parseSpec(content []byte) (*spec.SpecConfig, error) {
 	var config spec.SpecConfig
 	err := yaml.Unmarshal(content, &config)
@@ -30,15 +33,15 @@ func parseSpec(content []byte) (*spec.SpecConfig, error) {
 	return &config, nil
 }
 
-// transformURL is a new internal helper
+// transformURL converts GitHub blob and repo URLs to raw content URLs.
 func transformURL(path string, isSpec bool) string {
-	// 1. Check for `github.com/user/repo/blob/branch/path`
+	// Check for `github.com/user/repo/blob/branch/path`
 	if matches := githubBlobRegex.FindStringSubmatch(path); len(matches) == 5 {
 		// Transform to: raw.githubusercontent.com/user/repo/branch/path
 		return fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", matches[1], matches[2], matches[3], matches[4])
 	}
 
-	// 2. Check for `github.com/user/repo` or `.../tree/branch` (ONLY if loading a spec)
+	// Check for `github.com/user/repo` or `.../tree/branch` (ONLY if loading a spec)
 	if isSpec {
 		if matches := githubRepoRegex.FindStringSubmatch(path); len(matches) > 0 {
 			user := matches[1]

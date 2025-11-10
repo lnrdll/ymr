@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
 	"ymr/internal/spec"
 )
 
@@ -15,25 +14,15 @@ type SourceLoader interface {
 	LoadSpec(token string) (*spec.SpecConfig, error)
 }
 
-var githubSourceRegex = regexp.MustCompile(`^(?:https?://)?github\.com/([^/]+)/([^/@]+)(?:/([^@]+))?@(.+)`)
-
-// NewSourceLoader analyzes the path and returns the correct SourceLoader.
+// NewSourceLoader determines the appropriate loader (Local, GitHub, HTTP) based on the provided path.
 func NewSourceLoader(path string, token string) (SourceLoader, error) {
-	// 1. GitHub format: github.com/user/repo/subdir@version
+	// GitHub format: github.com/user/repo/subdir@version
 	if matches := githubSourceRegex.FindStringSubmatch(path); len(matches) > 0 {
 		user := matches[1]
 		repo := matches[2]
 		subdir := matches[3]
-		version := matches[4]
+		ref := matches[4]
 
-		ref := version
-		if version == "latest" {
-			var err error
-			ref, err = GetGithubDefaultBranch(user, repo, token)
-			if err != nil {
-				return nil, fmt.Errorf("could not resolve @latest for %s/%s: %w", user, repo, err)
-			}
-		}
 		return &GithubLoader{
 			User:   user,
 			Repo:   repo,
@@ -42,7 +31,7 @@ func NewSourceLoader(path string, token string) (SourceLoader, error) {
 		}, nil
 	}
 
-	// 2. Check for local file or directory
+	// Check for local file or directory
 	stat, statErr := os.Stat(path)
 	if statErr == nil {
 		baseDir := path
@@ -57,7 +46,7 @@ func NewSourceLoader(path string, token string) (SourceLoader, error) {
 		}, nil
 	}
 
-	// 3. Check for a direct HTTP(S) URL
+	// Check for a direct HTTP(S) URL
 	if isRemotePath(path) {
 		baseURL, err := url.Parse(path)
 		if err != nil {
@@ -71,13 +60,15 @@ func NewSourceLoader(path string, token string) (SourceLoader, error) {
 	return nil, fmt.Errorf("could not determine source type for path: %s", path)
 }
 
+// LoadTemplate fetches template content from a given path, using the appropriate loader.
+// It supports local files, GitHub URLs, and HTTP URLs.
 func LoadTemplate(loader SourceLoader, templatePath string, token string) ([]byte, error) {
-	// 1. If templatePath is an absolute URL, fetch it directly.
+	// If templatePath is an absolute URL, fetch it directly.
 	if isRemotePath(templatePath) {
 		return FetchHTTP(templatePath, token, false)
 	}
 
-	// 2. Determine the base path from the loader type.
+	// Determine the base path from the loader type.
 	var basePath string
 	switch l := loader.(type) {
 	case *LocalLoader:
@@ -92,14 +83,14 @@ func LoadTemplate(loader SourceLoader, templatePath string, token string) ([]byt
 		basePath = cwd
 	}
 
-	// 3. Join the base path with the relative template path.
+	// Join the base path with the relative template path.
 	// For remote paths, this correctly resolves relative URLs.
 	finalPath, err := url.JoinPath(basePath, templatePath)
 	if err != nil {
 		return nil, fmt.Errorf("error joining path: %w", err)
 	}
 
-	// 4. Fetch the content.
+	// Fetch the content.
 	if isRemotePath(finalPath) {
 		return FetchHTTP(finalPath, token, false)
 	}
