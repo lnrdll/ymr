@@ -20,6 +20,7 @@ func FetchHTTP(url string, token string, isSpec bool) ([]byte, error) {
 		req.Header.Add("Authorization", "Bearer "+token)
 	}
 	req.Header.Add("Accept", "application/vnd.github.v3.raw")
+	req.Header.Add("Cache-control", "no-cache")
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -36,5 +37,6 @@ func FetchHTTP(url string, token string, isSpec bool) ([]byte, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("bad response from server for %s: %s", transformedURL, resp.Status)
 	}
+
 	return io.ReadAll(resp.Body)
 }
