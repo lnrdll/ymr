@@ -23,7 +23,7 @@ targetIds:
 parameters:
   # --- Shared values ---
   - values:
-      companyName: "MyGlobalCorp"
+      name: "myapp-name"
     targetId: # Which targets this value set applies to
       - dev
       - prd
