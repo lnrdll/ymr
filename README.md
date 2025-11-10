@@ -9,40 +9,40 @@
 
 ## YAML Template Tool
 
-`ymr` (pronounced "ya·mr") is a flexible, spec-driven command-line interface (CLI) tool designed to simplify the generation of YAML files from templates. It's particularly useful for managing configurations across different environments or targets by replacing placeholders in your templates with values defined in a central `spec.yaml` file.
+`ymr` (pronounced “*ya·mr*”) is a lightweight, spec-driven command-line tool designed to simplify the generation of YAML files from templates. It’s ideal for managing configuration across multiple environments or targets by replacing placeholders in your YAML templates with values defined in a central spec.yaml file.
 
 ### Why?
 
-There are many tools available for YAML templating — such as `jtt`, `Helm`, `Kluctl`, and others — and they are all powerful solutions in their own right. These tools serve important purposes and handle complex use cases very effectively. However, they often come with a steep learning curve and typically require your YAML files to follow their specific formatting rules.
+Existing YAML templating tools — such as `jtt`, `Helm`, or `Kluctl` — are powerful and versatile, but they often come with a steep learning curve and impose specific formatting or structural requirements on your YAML files.
 
-`ymr` takes a simpler, more lightweight approach. Instead of replacing these tools, its intent is to complement them (if you may choose). You simply add comments to your YAML configuration, and if they match your specifications, `ymr` makes the substitutions. This allows you to use it with any YAML file — even those already used by other tools — without having to change your existing setup or workflow.
+`ymr` takes a simpler, more flexible approach. Instead of replacing these tools, it’s designed to complement them. You simply add comments to your existing YAML configuration, and if they match your defined specifications, `ymr` performs the substitutions.
+
+This means you can use `ymr` with any YAML file — including those already managed by other tools — without modifying your current workflow or file structure.
 
 ### How it Works
 
-`ymr` processes YAML templates by replacing specific placeholders with values from your `spec.yaml`. It supports two primary types of placeholders:
+`ymr` processes YAML templates by substituting placeholders with values from your spec.yaml. It supports two main types of placeholders:
 
-*   `# from-param: {{ .var }}`: Replaces the entire value with the parameter `{{ .var }}`.
-*   `# from-param-merge: {{ .var }}`: Merges the parameter `{{ .var }}` into the existing YAML structure.
+- `from-param: {{ .var }}` — replaces the entire value with the parameter {{ .var }}.
+- `from-param-merge: {{ .var }}` — merges the parameter {{ .var }} into the existing YAML structure.
 
-This allows for a dynamic configuration generation, enabling you to define common values and override them for specific targets or environments.
+This allows for dynamic, reusable configuration generation — letting you define shared values once and selectively override them for specific environments or targets.
+
+### Features
+- **Spec-Driven Configuration**: Define all your templates, target environments, and parameters in a single `spec.yaml` file.
+- **Multiple Targets**: Easily generate configurations for different environments (e.g., `dev`, `prd`) from the same set of templates.
+- **Parameter Overrides**: Override any parameter directly from the command line, providing flexibility for ad-hoc changes or CI/CD pipelines.
+- **Flexible Template Sources**: Fetch templates and specs from local files, directories, HTTP URLs, or GitHub repositories.
 
 ### Spec-less Mode
 
-`ymr` can be run without a `spec.yaml` file, which is useful for simple, one-off template rendering. In this mode, you must provide:
+`ymr` can be run **without** a `spec.yaml` file, which is useful for simple, one-off template rendering. In this mode, you must provide:
 
-*   A template file/URL via the `--template` (`-t`) flag.
-*   At least one target ID via the `--target` flag.
-*   At least one parameter via the `--param` (`-p`) flag.
+- A template file/URL via the `--template` (`-t`) flag.
+- At least one target ID via the `--target` flag.
+- At least one parameter via the `--param` (`-p`) flag.
 
 This mode is ideal for CI/CD pipelines or simple scripts where a full `spec.yaml` is unnecessary.
-
-### Features
-
-*   **Spec-Driven Configuration**: Define all your templates, target environments, and parameters in a single `spec.yaml` file.
-*   **Multiple Targets**: Easily generate configurations for different environments (e.g., `dev`, `prd`) from the same set of templates.
-*   **Parameter Overrides**: Override any parameter directly from the command line, providing flexibility for ad-hoc changes or CI/CD pipelines.
-*   **Flexible Template Sources**: Fetch templates and specs from local files, directories, HTTP URLs, or GitHub repositories.
-*   **Debug Mode**: Detailed logging for troubleshooting template processing.
 
 ### Installation
 
