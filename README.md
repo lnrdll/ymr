@@ -23,8 +23,8 @@ This means you can use `ymr` with any YAML file — including those already mana
 
 `ymr` processes YAML templates by substituting placeholders with values from your spec.yaml. It supports two main types of placeholders:
 
-- `from-param: {{ .var }}` — replaces the entire value with the parameter {{ .var }}.
-- `from-param-merge: {{ .var }}` — merges the parameter {{ .var }} into the existing YAML structure.
+- `from-param: {{ .var }}` — replaces the entire value with the parameter `{{ .var }}`.
+- `from-param-merge: {{ .var }}` — merges the parameter `{{ .var }}` into the existing YAML structure.
 
 This allows for dynamic, reusable configuration generation — letting you define shared values once and selectively override them for specific environments or targets.
 
