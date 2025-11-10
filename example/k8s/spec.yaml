@@ -1,0 +1,36 @@
+templates:
+  - deployment.yaml
+  - service.yaml
+
+targetIds:
+  - dev
+  - prd
+
+parameters:
+  # --- Shared values ---
+  - values:
+      name: "nginx"
+    targetId:
+      - dev
+      - prd
+
+  # --- Dev-specific values ---
+  - values:
+      minScale: 1
+      image: nginx:latest
+    targetId:
+      - dev
+
+  # --- Prod-specific values ---
+  - values:
+      replicas: 3
+      targetPort: 443
+      resources:
+        requests:
+          memory: 128Mi
+          cpu: 200m
+        limits:
+          memory: 256Mi
+          cpu: 400m
+    targetId:
+      - prd

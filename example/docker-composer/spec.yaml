@@ -1,0 +1,33 @@
+apiVersion: ymr/v1
+kind: Config
+
+templates:
+  - docker-composer.yaml
+
+targetIds:
+  - dev
+  - prd
+
+parameters:
+  # --- Dev-specific values ---
+  - values:
+      image: my-app:latest
+    targetId:
+      - dev
+
+  # --- Prod-specific values ---
+  - values:
+      image: my-app:1.1.1
+      volumes:
+        prd_db_data:
+          name: myapp_prd_db_volume
+      webenv:
+        ENV: production
+        DEBUG: "False"
+        SECRET_KEY: ${PROD_SECRET_KEY}
+      dbenv:
+        POSTGRES_USER: ${DB_USER:-app_user}
+        POSTGRES_PASSWORD: ${PROD_DB_PASSWORD}
+        POSTGRES_DB: ${DB_NAME:-app_db}
+    targetId:
+      - prd

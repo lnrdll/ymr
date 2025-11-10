@@ -1,0 +1,26 @@
+---
+version: "3.8"
+services:
+  web:
+    image: my-app # from-param: {{ .image }}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - db
+    ports:
+      - 80:80
+    environment: # from-param: {{ .webenv }}
+      ENV: development
+      DEBUG: "True"
+  db:
+    image: postgres:16-alpine
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    environment: # from-param: {{ .dbenv }}
+      POSTGRES_PASSWORD: local_dev_password
+      POSTGRES_DB: ${DB_NAME:-app_db}
+volumes: # from-param: {{ .volumes }}
+  dev_db_data:
+    name: myapp_dev_db_volume
