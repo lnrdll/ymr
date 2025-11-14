@@ -89,7 +89,7 @@ var initCmd = &cobra.Command{
 
 This file provides a starting point for defining your templates,
 target IDs, and parameters.`,
-	Run: runInit,
+	RunE: runInitE,
 }
 
 func init() {
@@ -110,14 +110,12 @@ func init() {
 	rootCmd.AddCommand(initCmd)
 }
 
-// runInit generates a boilerplate spec.yaml file in the current directory.
-func runInit(cmd *cobra.Command, args []string) {
+// runInitE generates a boilerplate spec.yaml file in the current directory.
+func runInitE(cmd *cobra.Command, args []string) error {
 	specFile := "spec.yaml"
 
 	if _, err := os.Stat(specFile); err == nil {
-		// TODO
-		slog.Error(specFile + "already exists in this directory.")
-		os.Exit(1)
+		return fmt.Errorf("%s already exists in this directory", specFile)
 	}
 
 	data := SpecData{
@@ -128,21 +126,18 @@ func runInit(cmd *cobra.Command, args []string) {
 
 	tmpl, err := template.New("spec").Parse(specTemplate)
 	if err != nil {
-		slog.Error("failed to parse the template", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to parse the template: %w", err)
 	}
 
 	var content bytes.Buffer
 	if err := tmpl.Execute(&content, data); err != nil {
-		slog.Error("failed to execute template", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to execute template: %w", err)
 	}
 
-	err = os.WriteFile(specFile, content.Bytes(), 0644)
-	if err != nil {
-		slog.Debug(fmt.Sprintf("Error writing spec file '%s': %v", specFile, err))
-		os.Exit(1)
+	if err := os.WriteFile(specFile, content.Bytes(), 0644); err != nil {
+		return fmt.Errorf("failed to write spec file '%s': %w", specFile, err)
 	}
 
 	fmt.Printf("Generated boilerplate file: %s\n", specFile)
+	return nil
 }

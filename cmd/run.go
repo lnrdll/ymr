@@ -9,6 +9,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// exitWithHelp prints the command's help, an error message, and exits.
+func exitWithHelp(cmd *cobra.Command, message string) {
+	_ = cmd.Help()
+	fmt.Fprintf(os.Stderr, "\nError: %s\n", message)
+	os.Exit(1)
+}
+
 var runCmd = &cobra.Command{
 	Use:     "run [flags]",
 	Short:   "Processes templates and generates output files.",
@@ -36,19 +43,13 @@ via CLI flags.`,
 			} else {
 				// No default spec.yaml. We are in spec-less mode.
 				if cfg.OverrideTemplate == "" {
-					_ = cmd.Help()
-					fmt.Fprintf(os.Stderr, "\nError: in spec-less mode (no -f flag or spec.yaml), --template (-t) is required.\n")
-					os.Exit(1)
+					exitWithHelp(cmd, "in spec-less mode (no -f flag or spec.yaml), --template (-t) is required.")
 				}
 				if len(cfg.OverrideTargets) == 0 {
-					_ = cmd.Help()
-					fmt.Fprintf(os.Stderr, "\nError: in spec-less mode (no -f flag or spec.yaml), at least one --target is required.\n")
-					os.Exit(1)
+					exitWithHelp(cmd, "in spec-less mode (no -f flag or spec.yaml), at least one --target is required.")
 				}
 				if len(cfg.OverrideParams) == 0 {
-					_ = cmd.Help()
-					fmt.Fprintf(os.Stderr, "\nError: in spec-less mode (no -f flag or spec.yaml), at least one --param is required.\n")
-					os.Exit(1)
+					exitWithHelp(cmd, "in spec-less mode (no -f flag or spec.yaml), at least one --param is required.")
 				}
 			}
 		}
