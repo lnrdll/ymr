@@ -1,26 +1,59 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"log/slog"
 	"os"
+	"text/template"
 
 	"github.com/spf13/cobra"
 )
 
-const boilerplateSpec = `# A list of templates to process.
+type SpecData struct {
+	Templates     []string
+	Targets       []string
+	isBoilerplate bool
+}
+
+const specTemplate = `# A list of templates to process.
 # Paths are relative to the location of this spec.yaml.
 templates:
+{{- range .Templates}}
+  - {{.}}
+{{- else}}
   - base/service.yaml
   - base/configmap.yaml
+{{- end}}
 
 # A simple list of target environments.
 targetIds:
+{{- range .Targets}}
+  - {{.}}
+{{- else}}
   - dev
   - prd
+{{- end}}
 
 # A list of parameter sets.
 parameters:
+{{- if .Targets}}
+  # --- Shared values for all provided targets ---
+  - values:
+      name: "myapp-name"
+    targetId:
+{{- range .Targets}}
+      - {{.}}
+{{- end}}
+
+{{- range .Targets}}
+  # --- Specific values for target '{{.}}' ---
+  - values:
+      foo: bar
+    targetId:
+      - {{.}}
+{{- end}}
+{{- else}}
   # --- Shared values ---
   - values:
       name: "myapp-name"
@@ -40,7 +73,13 @@ parameters:
       maxScale: 10
     targetId:
       - prd
+{{end}}
 `
+
+var (
+	customTemplates []string
+	customTargets   []string
+)
 
 var initCmd = &cobra.Command{
 	Use:     "init",
@@ -54,6 +93,20 @@ target IDs, and parameters.`,
 }
 
 func init() {
+	initCmd.Flags().StringSliceVar(
+		&customTemplates,
+		"templates",
+		nil,
+		"A comma-separated list of template paths (e.g., 'base/service.yaml,base/configmap.yaml')",
+	)
+
+	initCmd.Flags().StringSliceVar(
+		&customTargets,
+		"targets",
+		nil,
+		"A comma-separated list of target IDs (e.g., 'dev,prd')",
+	)
+
 	rootCmd.AddCommand(initCmd)
 }
 
@@ -67,7 +120,25 @@ func runInit(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	err := os.WriteFile(specFile, []byte(boilerplateSpec), 0644)
+	data := SpecData{
+		Templates:     customTemplates,
+		Targets:       customTargets,
+		isBoilerplate: len(customTemplates) == 0 && len(customTargets) == 0,
+	}
+
+	tmpl, err := template.New("spec").Parse(specTemplate)
+	if err != nil {
+		slog.Error("failed to parse the template", "error", err)
+		os.Exit(1)
+	}
+
+	var content bytes.Buffer
+	if err := tmpl.Execute(&content, data); err != nil {
+		slog.Error("failed to execute template", "error", err)
+		os.Exit(1)
+	}
+
+	err = os.WriteFile(specFile, content.Bytes(), 0644)
 	if err != nil {
 		slog.Debug(fmt.Sprintf("Error writing spec file '%s': %v", specFile, err))
 		os.Exit(1)

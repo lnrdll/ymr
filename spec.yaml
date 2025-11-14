@@ -1,0 +1,42 @@
+# A list of templates to process.
+# Paths are relative to the location of this spec.yaml.
+templates:
+  - service.yaml
+
+# A simple list of target environments.
+targetIds:
+  - dev
+  - tst
+  - stg
+  - prd
+
+# A list of parameter sets.
+parameters:
+  # --- Shared values for all provided targets ---
+  - values:
+      name: "myapp-name"
+    targetId:
+      - dev
+      - tst
+      - stg
+      - prd
+  # --- Specific values for target 'dev' ---
+  - values:
+      minScale: 1
+    targetId:
+      - dev
+  # --- Specific values for target 'tst' ---
+  - values:
+      minScale: 1
+    targetId:
+      - tst
+  # --- Specific values for target 'stg' ---
+  - values:
+      minScale: 1
+    targetId:
+      - stg
+  # --- Specific values for target 'prd' ---
+  - values:
+      minScale: 1
+    targetId:
+      - prd
