@@ -13,8 +13,11 @@ import (
 type SpecData struct {
 	Templates     []string
 	Targets       []string
+	Parameters    []string
 	isBoilerplate bool
 }
+
+var specData = SpecData{}
 
 const specTemplate = `# A list of templates to process.
 # Paths are relative to the location of this spec.yaml.
@@ -39,19 +42,30 @@ targetIds:
 parameters:
 {{- if .Targets}}
   # --- Shared values for all provided targets ---
-  - values:
-      name: "myapp-name"
-    targetId:
+  - targetId:
 {{- range .Targets}}
       - {{.}}
+{{- end}}
+    values:
+{{- if $.Parameters}}
+{{- range $.Parameters}}
+      {{.}}
+{{- end}}
+{{- else}}
+      name: "myapp-name"
 {{- end}}
 
 {{- range .Targets}}
   # --- Specific values for target '{{.}}' ---
-  - values:
+  - targetId: ["{{.}}"]
+    values:
+{{- if $.Parameters}}
+{{- range $.Parameters}}
+      {{.}}
+{{- end}}
+{{- else}}
       foo: bar
-    targetId:
-      - {{.}}
+{{- end}}
 {{- end}}
 {{- else}}
   # --- Shared values ---
@@ -76,11 +90,6 @@ parameters:
 {{end}}
 `
 
-var (
-	customTemplates []string
-	customTargets   []string
-)
-
 var initCmd = &cobra.Command{
 	Use:     "init",
 	Short:   "Generates a boilerplate spec.yaml file",
@@ -94,17 +103,25 @@ target IDs, and parameters.`,
 
 func init() {
 	initCmd.Flags().StringSliceVar(
-		&customTemplates,
+		&specData.Templates,
 		"templates",
 		nil,
 		"A comma-separated list of template paths (e.g., 'base/service.yaml,base/configmap.yaml')",
 	)
 
 	initCmd.Flags().StringSliceVar(
-		&customTargets,
+		&specData.Targets,
 		"targets",
 		nil,
 		"A comma-separated list of target IDs (e.g., 'dev,prd')",
+	)
+
+	initCmd.PersistentFlags().StringSliceVarP(
+		&specData.Parameters,
+		"param",
+		"p",
+		nil,
+		"Param values to be configured ('foo: bar'). Can be used multiple times.",
 	)
 
 	rootCmd.AddCommand(initCmd)
@@ -120,11 +137,7 @@ func runInit(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	data := SpecData{
-		Templates:     customTemplates,
-		Targets:       customTargets,
-		isBoilerplate: len(customTemplates) == 0 && len(customTargets) == 0,
-	}
+	specData.isBoilerplate = len(specData.Templates) == 0 && len(specData.Targets) == 0
 
 	tmpl, err := template.New("spec").Parse(specTemplate)
 	if err != nil {
@@ -133,7 +146,7 @@ func runInit(cmd *cobra.Command, args []string) {
 	}
 
 	var content bytes.Buffer
-	if err := tmpl.Execute(&content, data); err != nil {
+	if err := tmpl.Execute(&content, specData); err != nil {
 		slog.Error("failed to execute template", "error", err)
 		os.Exit(1)
 	}
