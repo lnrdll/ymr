@@ -19,23 +19,23 @@ func TestProcessContent(t *testing.T) {
 	}{
 		{
 			name:         "Simple String Replacement",
-			inputYAML:    `key: default_value # from-param: {{ .MyVal }}`,
+			inputYAML:    "key: default_value # from-param: {{ .MyVal }}",
 			params:       map[string]any{"MyVal": "new_value"},
-			expectedYAML: `key: new_value`,
+			expectedYAML: "key: new_value",
 			desc:         "Should replace the value of the key with the param",
 		},
 		{
 			name:         "Template Function - Lower",
-			inputYAML:    `environment: PROD # from-param: {{ .Env | lower }}`,
+			inputYAML:    "environment: PROD # from-param: {{ .Env | lower }}",
 			params:       map[string]any{"Env": "STAGING"},
-			expectedYAML: `environment: staging`,
+			expectedYAML: "environment: staging",
 			desc:         "Should allow use of the 'lower' function",
 		},
 		{
 			name:         "Template Function - Replace",
 			inputYAML:    `image: nginx # from-param: {{ .Img | replace "nginx" "alpine" }}`,
 			params:       map[string]any{"Img": "my-nginx-image"},
-			expectedYAML: `image: my-alpine-image`,
+			expectedYAML: "image: my-alpine-image",
 			desc:         "Should correctly handle the replace function order when using pipes",
 		},
 		{
@@ -51,13 +51,9 @@ func TestProcessContent(t *testing.T) {
 items: # from-param-merge: {{ .NewItems }}
   - existing
 `,
-			params: map[string]any{"NewItems": []string{"added1", "added2"}},
-			expectedYAML: `items:
-  - existing
-  - added1
-  - added2
-`,
-			desc: "Should append new items to the existing list",
+			params:       map[string]any{"NewItems": []string{"added1", "added2"}},
+			expectedYAML: `items: ["existing", "added1", "added2"]`,
+			desc:         "Should append new items to the existing list",
 		},
 		{
 			name: "Map Merge",
@@ -66,7 +62,8 @@ labels: # from-param-merge: {{ .ExtraLabels }}
   app: main
 `,
 			params: map[string]any{"ExtraLabels": map[string]string{"tier": "backend"}},
-			expectedYAML: `labels:
+			expectedYAML: `
+labels:
   app: main
   tier: backend
 `,
@@ -80,7 +77,8 @@ database:
   port: 5432 # from-param: {{ .DBPort }}
 `,
 			params: map[string]any{"DBPort": 3306},
-			expectedYAML: `database:
+			expectedYAML: `
+database:
   host: localhost
   port: 3306
 `,
