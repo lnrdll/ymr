@@ -14,6 +14,9 @@ import (
 // The "full" regex for capturing the entire template string
 var paramCommentRegex = regexp.MustCompile(`(from-param|from-param-merge):\s*(.+)`)
 
+// A regex to detect if the template is a key lookup. It matches "{{ .key }}" or "{{.key}}"
+var simpleTemplateRegex = regexp.MustCompile(`^\s*{{\s*\.([a-zA-Z0-9_.-]+)\s*}}\s*$`)
+
 // ProcessContent takes template content and substitutes params.
 func ProcessContent(templateContent []byte, params map[string]any) (string, error) {
 	var rootNode yaml.Node
@@ -89,6 +92,19 @@ func traverse(node *yaml.Node, params map[string]any) {
 // It updates the provided yaml.Node with the processed value.
 func processDirective(node *yaml.Node, directive, rawString string, params map[string]any) {
 	slog.Debug("Processing directive", "directive", directive, "rawString", rawString)
+
+	// This preserves arrays/maps/objects
+	if matches := simpleTemplateRegex.FindStringSubmatch(rawString); len(matches) > 1 {
+		paramName := matches[1]
+		if value, ok := params[paramName]; ok {
+			// It's a simple key. Pass the raw interface{} value.
+			updateNodeValue(node, value, directive)
+			return
+		} else {
+			slog.Debug("Template key missing, preserving default", "key", paramName)
+			return
+		}
+	}
 
 	renderedValue, err := executeTemplate(rawString, params)
 	if err == nil {
