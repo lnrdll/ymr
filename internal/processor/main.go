@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"regexp"
+	"strings"
 	"text/template"
 
 	"gopkg.in/yaml.v3"
@@ -12,9 +13,6 @@ import (
 
 // The "full" regex for capturing the entire template string
 var paramCommentRegex = regexp.MustCompile(`(from-param|from-param-merge):\s*(.+)`)
-
-// A "simple" regex to detect if the template is a key lookup. It matches "{{ .key }}" or "{{.key}}"
-var simpleTemplateRegex = regexp.MustCompile(`^\s*{{\s*\.([a-zA-Z0-9_.-]+)\s*}}\s*$`)
 
 // ProcessContent takes template content and substitutes params.
 func ProcessContent(templateContent []byte, params map[string]any) (string, error) {
@@ -87,25 +85,11 @@ func traverse(node *yaml.Node, params map[string]any) {
 	}
 }
 
-// processDirective determines whether to perform a simple key lookup or a full template execution.
+// processDirective performs the directive substitution.
 // It updates the provided yaml.Node with the processed value.
 func processDirective(node *yaml.Node, directive, rawString string, params map[string]any) {
 	slog.Debug("Processing directive", "directive", directive, "rawString", rawString)
-	// Check if it's a *simple* template (e.g., "{{ .envVars }}")
-	if matches := simpleTemplateRegex.FindStringSubmatch(rawString); len(matches) > 1 {
-		paramName := matches[1]
-		if value, ok := params[paramName]; ok {
-			// It's a simple key. Pass the raw interface{} value.
-			// This preserves arrays/maps/objects.
-			updateNodeValue(node, value, directive)
-			return
-		} else {
-			slog.Debug("Template key missing, preserving default", "key", paramName)
-			return
-		}
-	}
 
-	// Check if it's a *complex* template (e.g., "image-{{ .env }}")
 	renderedValue, err := executeTemplate(rawString, params)
 	if err == nil {
 		updateNodeValue(node, renderedValue, directive)
@@ -154,8 +138,16 @@ func updateNodeValue(node *yaml.Node, newValue any, directive string) {
 
 // executeTemplate renders a Go template string with the provided parameters.
 func executeTemplate(tmplStr string, params map[string]any) (string, error) {
-	tmpl, err := template.New("param").
+	tmpl, err := template.New("template").
 		Option("missingkey=error").
+		Funcs(template.FuncMap{
+			"lower": strings.ToLower,
+			"upper": strings.ToUpper,
+			"replace": func(old, new, s string) string {
+				slog.Debug("Processing template replace string", "old", old, "new", new, "s", s)
+				return strings.ReplaceAll(s, old, new)
+			},
+		}).
 		Parse(tmplStr)
 
 	if err != nil {
