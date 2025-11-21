@@ -20,7 +20,7 @@ type SourceLoader interface {
 // NewSourceLoader determines the appropriate loader (Local, GitHub, HTTP) based on the provided path.
 func NewSourceLoader(path string, token string) (SourceLoader, error) {
 	slog.Debug("Attempting to create source loader", "path", path)
-	// GitHub format: github.com/user/repo/subdir@version
+	// GitHub URL: github.com/user/repo/...
 	if githubLoader, ok := ParseGitHubURL(path); ok && githubLoader.Ref != "" {
 		slog.Debug("Detected GitHub source", "user", githubLoader.User, "repo", githubLoader.Repo, "subdir", githubLoader.Subdir, "ref", githubLoader.Ref)
 		return &githubLoader, nil
