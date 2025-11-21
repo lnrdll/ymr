@@ -8,12 +8,11 @@ import (
 )
 
 type GithubLoader struct {
-	User   string
-	Repo   string
-	Subdir string
-	Branch string
 	Path   string
 	Ref    string // Consolidated Git reference (branch, tag, commit)
+	Repo   string
+	Subdir string
+	User   string
 }
 
 // LoadSpec fetches the spec file from a GitHub repository.
@@ -33,12 +32,12 @@ func (g *GithubLoader) LoadSpec(token string) (*spec.SpecConfig, error) {
 func (g *GithubLoader) GetRawContentURL(relativePath string, isSpec bool) string {
 	// If it's a blob URL (g.Path is set), prioritize that.
 	if g.Path != "" && relativePath == "" {
-		return fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", g.User, g.Repo, g.Branch, g.Path)
+		return fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", g.User, g.Repo, g.Ref, g.Path)
 	}
 
 	// If it's a repo URL for a spec and no specific relativePath is given, default to spec.yaml in root.
 	if isSpec && g.Repo != "" && relativePath == "" {
-		branch := g.Branch
+		branch := g.Ref
 		if branch == "" {
 			branch = "main"
 		}

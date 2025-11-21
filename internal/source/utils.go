@@ -24,11 +24,10 @@ var githubSourceRegex = regexp.MustCompile(`^(?:https?://)?github\.com/([^/]+)/(
 func ParseGitHubURL(url string) (GithubLoader, bool) {
 	if matches := githubBlobRegex.FindStringSubmatch(url); len(matches) == 5 {
 		return GithubLoader{
-			User:   matches[1],
-			Repo:   matches[2],
-			Branch: matches[3],
-			Path:   matches[4],
-			Ref:    matches[3], // Use branch as ref for blob URLs
+			User: matches[1],
+			Repo: matches[2],
+			Ref:  matches[3], // Use branch as ref for blob URLs
+			Path: matches[4],
 		}, true
 	}
 
@@ -38,10 +37,9 @@ func ParseGitHubURL(url string) (GithubLoader, bool) {
 			branch = matches[3]
 		}
 		return GithubLoader{
-			User:   matches[1],
-			Repo:   matches[2],
-			Branch: branch,
-			Ref:    branch, // Use branch as ref for repo URLs
+			User: matches[1],
+			Repo: matches[2],
+			Ref:  branch, // Use branch as ref for repo URLs
 		}, true
 	}
 
