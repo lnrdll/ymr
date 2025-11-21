@@ -28,3 +28,8 @@ func (h *HTTPLoader) LoadSpec(token string) (*spec.SpecConfig, error) {
 	}
 	return parseSpec(content)
 }
+
+// GetBasePath returns the base URL for resolving relative template paths.
+func (h *HTTPLoader) GetBasePath() string {
+	return h.getBaseURL()
+}

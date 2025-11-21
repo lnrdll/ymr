@@ -13,25 +13,17 @@ import (
 type SourceLoader interface {
 	// LoadSpec fetches and parses the spec.yaml file.
 	LoadSpec(token string) (*spec.SpecConfig, error)
+	// GetBasePath returns the base path for resolving relative template paths.
+	GetBasePath() string
 }
 
 // NewSourceLoader determines the appropriate loader (Local, GitHub, HTTP) based on the provided path.
 func NewSourceLoader(path string, token string) (SourceLoader, error) {
 	slog.Debug("Attempting to create source loader", "path", path)
 	// GitHub format: github.com/user/repo/subdir@version
-	if matches := githubSourceRegex.FindStringSubmatch(path); len(matches) > 0 {
-		user := matches[1]
-		repo := matches[2]
-		subdir := matches[3]
-		ref := matches[4]
-
-		slog.Debug("Detected GitHub source", "user", user, "repo", repo, "subdir", subdir, "ref", ref)
-		return &GithubLoader{
-			User:   user,
-			Repo:   repo,
-			SubDir: subdir,
-			Ref:    ref,
-		}, nil
+	if githubLoader, ok := ParseGitHubURL(path); ok && githubLoader.Ref != "" {
+		slog.Debug("Detected GitHub source", "user", githubLoader.User, "repo", githubLoader.Repo, "subdir", githubLoader.Subdir, "ref", githubLoader.Ref)
+		return &githubLoader, nil
 	}
 
 	// Check for local file or directory
@@ -77,24 +69,9 @@ func LoadTemplate(loader SourceLoader, templatePath string, token string) ([]byt
 		return fetch(templatePath, token, false)
 	}
 
-	// Determine the base path from the loader type.
-	var basePath string
-	switch l := loader.(type) {
-	case *LocalLoader:
-		basePath = l.BaseDir
-		slog.Debug("Using LocalLoader base directory", "baseDir", basePath)
-	case *GithubLoader:
-		basePath = l.getRawURL("")
-		slog.Debug("Using GithubLoader base URL", "baseURL", basePath)
-	case *HTTPLoader:
-		basePath = l.getBaseURL()
-		slog.Debug("Using HTTPLoader base URL", "baseURL", basePath)
-	default:
-		// Fallback to CWD if loader type is unknown or nil.
-		cwd, _ := os.Getwd()
-		basePath = cwd
-		slog.Debug("Unknown loader type, falling back to CWD", "cwd", basePath)
-	}
+	// Determine the base path from the loader.
+	basePath := loader.GetBasePath()
+	slog.Debug("Using loader base path", "basePath", basePath)
 
 	// Join the base path with the relative template path.
 	// For remote paths, this correctly resolves relative URLs.

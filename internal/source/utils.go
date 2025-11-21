@@ -20,6 +20,43 @@ var githubRepoRegex = regexp.MustCompile(`^https?://github\.com/([^/]+)/([^/@]+)
 // Regex for GitHub format: github.com/user/repo/subdir@version
 var githubSourceRegex = regexp.MustCompile(`^(?:https?://)?github\.com/([^/]+)/([^/@]+)(?:/([^@]+))?@(.+)`)
 
+// ParseGitHubURL parses a GitHub URL string into a GithubLoader struct.
+func ParseGitHubURL(url string) (GithubLoader, bool) {
+	if matches := githubBlobRegex.FindStringSubmatch(url); len(matches) == 5 {
+		return GithubLoader{
+			User:   matches[1],
+			Repo:   matches[2],
+			Branch: matches[3],
+			Path:   matches[4],
+			Ref:    matches[3], // Use branch as ref for blob URLs
+		}, true
+	}
+
+	if matches := githubRepoRegex.FindStringSubmatch(url); len(matches) > 0 {
+		branch := "main"
+		if len(matches) == 4 && matches[3] != "" {
+			branch = matches[3]
+		}
+		return GithubLoader{
+			User:   matches[1],
+			Repo:   matches[2],
+			Branch: branch,
+			Ref:    branch, // Use branch as ref for repo URLs
+		}, true
+	}
+
+	if matches := githubSourceRegex.FindStringSubmatch(url); len(matches) == 5 {
+		return GithubLoader{
+			User:   matches[1],
+			Repo:   matches[2],
+			Subdir: matches[3],
+			Ref:    matches[4], // Use version as ref for source URLs
+		}, true
+	}
+
+	return GithubLoader{}, false
+}
+
 // isRemotePath checks if a given path is an absolute remote URL.
 func isRemotePath(path string) bool {
 	// httpRegex matches absolute http or https URLs.
@@ -38,40 +75,16 @@ func parseSpec(content []byte) (*spec.SpecConfig, error) {
 	return &config, nil
 }
 
-// transformURL converts GitHub blob and repo URLs to raw content URLs.
-func transformURL(path string, isSpec bool) string {
-	slog.Debug("Transforming URL", "originalURL", path, "isSpec", isSpec)
-	// Check for `github.com/user/repo/blob/branch/path`
-	if matches := githubBlobRegex.FindStringSubmatch(path); len(matches) == 5 {
-		// Transform to: raw.githubusercontent.com/user/repo/branch/path
-		transformedURL := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", matches[1], matches[2], matches[3], matches[4])
-		slog.Debug("Transformed GitHub blob URL", "original", path, "transformed", transformedURL)
-		return transformedURL
-	}
-
-	// Check for `github.com/user/repo` or `.../tree/branch` (ONLY if loading a spec)
-	if isSpec {
-		if matches := githubRepoRegex.FindStringSubmatch(path); len(matches) > 0 {
-			user := matches[1]
-			repo := matches[2]
-			branch := "main" // Default branch
-			if len(matches) == 4 && matches[3] != "" {
-				branch = matches[3]
-			}
-			// Transform to: raw.githubusercontent.com/user/repo/branch/spec.yaml
-			transformedURL := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/spec.yaml", user, repo, branch)
-			slog.Debug("Transformed GitHub repo URL for spec", "original", path, "transformed", transformedURL)
-			return transformedURL
-		}
-	}
-	slog.Debug("No URL transformation applied", "url", path)
-	return path
-}
-
 // fetch fetches content from a URL, with optional GitHub token authentication.
 func fetch(url string, token string, isSpec bool) ([]byte, error) {
 	slog.Debug("Fetching HTTP content", "url", url, "isSpec", isSpec)
-	transformedURL := transformURL(url, isSpec)
+
+	var transformedURL string
+	if ghl, ok := ParseGitHubURL(url); ok {
+		transformedURL = ghl.GetRawContentURL("", isSpec)
+	} else {
+		transformedURL = url
+	}
 
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", transformedURL, nil)

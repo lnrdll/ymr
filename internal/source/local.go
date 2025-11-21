@@ -23,3 +23,8 @@ func (l *LocalLoader) LoadSpec(token string) (*spec.SpecConfig, error) {
 	}
 	return parseSpec(content)
 }
+
+// GetBasePath returns the base directory for local files.
+func (l *LocalLoader) GetBasePath() string {
+	return l.BaseDir
+}
