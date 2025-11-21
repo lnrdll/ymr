@@ -71,10 +71,9 @@ func init() {
 		"Source path (local, dir, file, http url, or github). Defaults to ./spec.yaml)",
 	)
 
-	runCmd.PersistentFlags().StringVarP(
+	runCmd.PersistentFlags().StringVar(
 		&cfg.OverrideTemplate,
 		"template",
-		"t",
 		"",
 		"A single template file/URL. Required in spec-less mode.",
 	)
@@ -95,9 +94,10 @@ func init() {
 		"Override a parameter (key=value). Can be used multiple times.",
 	)
 
-	runCmd.PersistentFlags().StringSliceVar(
+	runCmd.PersistentFlags().StringSliceVarP(
 		&cfg.OverrideTargets,
 		"target",
+		"t",
 		nil,
 		"Override which targets to render. Can be used multiple times.",
 	)

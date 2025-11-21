@@ -109,9 +109,10 @@ func init() {
 		"A comma-separated list of template paths (e.g., 'base/service.yaml,base/configmap.yaml')",
 	)
 
-	initCmd.Flags().StringSliceVar(
+	initCmd.Flags().StringSliceVarP(
 		&specData.Targets,
-		"targets",
+		"target",
+		"t",
 		nil,
 		"A comma-separated list of target IDs (e.g., 'dev,prd')",
 	)
