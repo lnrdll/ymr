@@ -21,7 +21,7 @@ func (h *HTTPLoader) getBaseURL() string {
 // LoadSpec fetches the spec file from a remote HTTP URL.
 func (h *HTTPLoader) LoadSpec(token string) (*spec.SpecConfig, error) {
 	slog.Debug("Loading spec from HTTP", "specURL", h.SpecURL.String())
-	content, err := FetchHTTP(h.SpecURL.String(), token, true)
+	content, err := fetch(h.SpecURL.String(), token, true)
 	if err != nil {
 		slog.Debug("Failed to fetch spec from HTTP", "specURL", h.SpecURL.String(), "error", err)
 		return nil, fmt.Errorf("fetching spec from %s: %w", h.SpecURL.String(), err)

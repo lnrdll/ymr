@@ -74,7 +74,7 @@ func LoadTemplate(loader SourceLoader, templatePath string, token string) ([]byt
 	// If templatePath is an absolute URL, fetch it directly.
 	if isRemotePath(templatePath) {
 		slog.Debug("Template path is remote, fetching directly", "templatePath", templatePath)
-		return FetchHTTP(templatePath, token, false)
+		return fetch(templatePath, token, false)
 	}
 
 	// Determine the base path from the loader type.
@@ -108,7 +108,7 @@ func LoadTemplate(loader SourceLoader, templatePath string, token string) ([]byt
 	// Fetch the content.
 	if isRemotePath(finalPath) {
 		slog.Debug("Fetching remote template content", "finalPath", finalPath)
-		return FetchHTTP(finalPath, token, false)
+		return fetch(finalPath, token, false)
 	}
 	slog.Debug("Reading local template content", "finalPath", finalPath)
 	return os.ReadFile(finalPath)

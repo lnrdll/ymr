@@ -24,7 +24,7 @@ func (g *GithubLoader) getRawURL(filePath string) string {
 func (g *GithubLoader) LoadSpec(token string) (*spec.SpecConfig, error) {
 	specURL := g.getRawURL("spec.yaml")
 	slog.Debug("Loading spec from GitHub", "specURL", specURL)
-	content, err := FetchHTTP(specURL, token, true)
+	content, err := fetch(specURL, token, true)
 	if err != nil {
 		slog.Debug("Failed to fetch spec from GitHub", "specURL", specURL, "error", err)
 		return nil, fmt.Errorf("fetching spec from %s: %w", specURL, err)
