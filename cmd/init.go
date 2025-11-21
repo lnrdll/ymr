@@ -69,24 +69,20 @@ parameters:
 {{- end}}
 {{- else}}
   # --- Shared values ---
-  - values:
+  - targetId: ["dev", "prd"] # Which targets this value set applies to
+    values:
       name: "myapp-name"
-    targetId: # Which targets this value set applies to
-      - dev
-      - prd
 
   # --- Dev-specific values ---
-  - values:
+  - targetId: ["dev"]
+    values:
       minScale: 1
-    targetId:
-      - dev
 
   # --- Prod-specific values ---
-  - values:
+  - targetId: ["prd"]
+    values:
       minScale: 3
       maxScale: 10
-    targetId:
-      - prd
 {{end}}
 `
 
