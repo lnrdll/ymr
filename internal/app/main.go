@@ -38,7 +38,19 @@ func Run(cfg Config) error {
 	var loader source.SourceLoader
 	var err error
 
-	if cfg.SpecFile != "" {
+	if cfg.SpecFile == "" {
+		// Spec-Less mode
+		specConfig = &spec.SpecConfig{
+			Templates:  []string{cfg.OverrideTemplate},
+			TargetIds:  cfg.OverrideTargets,
+			Parameters: []spec.ParamSet{},
+		}
+
+		// Create a LocalLoader based on the current directory
+		cwd, _ := os.Getwd()
+		loader = &source.LocalLoader{BaseDir: cwd, SpecPath: ""}
+		slog.Debug("Running in spec-less mode (no spec file found or provided)", "loader", loader)
+	} else {
 		// Spec-file mode
 		slog.Debug("Using source loader", "source", cfg.SpecFile)
 
@@ -51,44 +63,32 @@ func Run(cfg Config) error {
 		if err != nil {
 			return fmt.Errorf("loading spec file: %w", err)
 		}
-	} else {
-		// Spec-Less mode
-		slog.Debug("Running in spec-less mode (no spec file found or provided)")
-		specConfig = &spec.SpecConfig{
-			Templates:  []string{cfg.OverrideTemplate},
-			TargetIds:  cfg.OverrideTargets,
-			Parameters: []spec.ParamSet{},
-		}
-
-		// Create a LocalLoader based on the current directory
-		cwd, _ := os.Getwd()
-		loader = &source.LocalLoader{BaseDir: cwd, SpecPath: ""}
 	}
 
-	// (Override) Handle CLI template override
+	// (Override) Template
 	if cfg.OverrideTemplate != "" {
 		specConfig.Templates = []string{cfg.OverrideTemplate}
-		slog.Debug("Overriding templates", "template", cfg.OverrideTemplate)
+		slog.Debug("Overriding template", "template", cfg.OverrideTemplate)
 	}
 
 	// Build the parameter map
 	paramLookup := spec.BuildParamLookup(specConfig)
 
-	// (Override) Parse and apply CLI parameters
+	// (Override) Parameters
 	cliOverrides, err := spec.ParseCliParams(cfg.OverrideParams)
 	if err != nil {
 		return fmt.Errorf("parsing override parameters: %w", err)
 	}
 
 	if len(cliOverrides) > 0 {
-		slog.Debug("Applying CLI parameter overrides", "count", len(cliOverrides))
+		slog.Debug("Overriding parameters", "count", len(cliOverrides), "parameters", cliOverrides)
 		for targetId, paramMap := range paramLookup {
 			applyCliOverrides(paramMap, cliOverrides)
 			paramLookup[targetId] = paramMap
 		}
 	}
 
-	// (Override) Filter targets
+	// (Override) Targets
 	targetsToRender := specConfig.TargetIds
 	if len(cfg.OverrideTargets) > 0 {
 		filteredTargets := make([]string, 0)
@@ -113,13 +113,7 @@ func Run(cfg Config) error {
 		var templateContent []byte
 		var err error
 
-		// If a template is specified via CLI flag, it should be loaded relative to the CWD.
-		// Passing a nil loader to LoadTemplate signals that it should use the CWD as the base path.
-		if cfg.OverrideTemplate != "" && templatePath == cfg.OverrideTemplate {
-			templateContent, err = source.LoadTemplate(nil, templatePath, token)
-		} else {
-			templateContent, err = source.LoadTemplate(loader, templatePath, token)
-		}
+		templateContent, err = source.LoadTemplate(loader, templatePath, token)
 
 		if err != nil {
 			slog.Debug(fmt.Sprintf("Skipping template '%s' due to error: %v", templatePath, err))
