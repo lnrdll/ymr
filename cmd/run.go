@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"fmt"
+	"log"
 	"log/slog"
 	"os"
 	"ymr/internal/app"
@@ -36,26 +36,19 @@ via CLI flags.`,
 			} else {
 				// No default spec.yaml. We are in spec-less mode.
 				if cfg.OverrideTemplate == "" {
-					_ = cmd.Help()
-					fmt.Fprintf(os.Stderr, "\nError: in spec-less mode (no -f flag or spec.yaml), --template (-t) is required.\n")
-					os.Exit(1)
+					log.Fatalf("\nError: in spec-less mode (no -f flag or spec.yaml), --template (-t) is required.\n")
 				}
 				if len(cfg.OverrideTargets) == 0 {
-					_ = cmd.Help()
-					fmt.Fprintf(os.Stderr, "\nError: in spec-less mode (no -f flag or spec.yaml), at least one --target is required.\n")
-					os.Exit(1)
+					log.Fatalf("\nError: in spec-less mode (no -f flag or spec.yaml), at least one --target is required.\n")
 				}
 				if len(cfg.OverrideParams) == 0 {
-					_ = cmd.Help()
-					fmt.Fprintf(os.Stderr, "\nError: in spec-less mode (no -f flag or spec.yaml), at least one --param is required.\n")
-					os.Exit(1)
+					log.Fatalf("\nError: in spec-less mode (no -f flag or spec.yaml), at least one --param is required.\n")
 				}
 			}
 		}
 
 		if err := app.Run(cfg); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+			log.Fatalf("Error: %v\n", err)
 		}
 	},
 }
