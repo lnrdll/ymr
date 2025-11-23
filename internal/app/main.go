@@ -13,8 +13,8 @@ import (
 	"ymr/internal/spec"
 )
 
-// applyCliOverrides applies CLI provided parameter overrides to a given parameter map.
-func applyCliOverrides(paramMap map[string]any, cliOverrides map[string]any) {
+// applyParamsOverride applies CLI provided parameter overrides to a given parameter map.
+func applyParamsOverride(paramMap map[string]any, cliOverrides map[string]any) {
 	maps.Copy(paramMap, cliOverrides)
 }
 
@@ -75,15 +75,15 @@ func Run(cfg Config) error {
 	paramLookup := spec.BuildParamLookup(specConfig)
 
 	// (Override) Parameters
-	cliOverrides, err := spec.ParseCliParams(cfg.OverrideParams)
+	paramsOverride, err := spec.ParseCliParams(cfg.OverrideParams)
 	if err != nil {
 		return fmt.Errorf("parsing override parameters: %w", err)
 	}
 
-	if len(cliOverrides) > 0 {
-		slog.Debug("Overriding parameters", "count", len(cliOverrides), "parameters", cliOverrides)
+	if len(paramsOverride) > 0 {
+		slog.Debug("Overriding parameters", "count", len(paramsOverride), "parameters", paramsOverride)
 		for targetId, paramMap := range paramLookup {
-			applyCliOverrides(paramMap, cliOverrides)
+			applyParamsOverride(paramMap, paramsOverride)
 			paramLookup[targetId] = paramMap
 		}
 	}
@@ -130,8 +130,8 @@ func Run(cfg Config) error {
 				params = make(map[string]any)
 			}
 
-			if len(cliOverrides) > 0 && !ok {
-				applyCliOverrides(params, cliOverrides)
+			if len(paramsOverride) > 0 && !ok {
+				applyParamsOverride(params, paramsOverride)
 			}
 
 			renderedYaml, err := processor.ProcessContent(templateContent, params)

@@ -63,6 +63,7 @@ func NewSourceLoader(path string, token string) (SourceLoader, error) {
 // It supports local files, GitHub URLs, and HTTP URLs.
 func LoadTemplate(loader SourceLoader, templatePath string, token string) ([]byte, error) {
 	slog.Debug("Loading template", "templatePath", templatePath)
+
 	// If templatePath is an absolute URL, fetch it directly.
 	if isRemotePath(templatePath) {
 		slog.Debug("Template path is remote, fetching directly", "templatePath", templatePath)
@@ -71,6 +72,7 @@ func LoadTemplate(loader SourceLoader, templatePath string, token string) ([]byt
 
 	// Determine the base path from the loader.
 	basePath := loader.GetBasePath()
+
 	slog.Debug("Using loader base path", "basePath", basePath)
 
 	// Join the base path with the relative template path.
@@ -80,6 +82,7 @@ func LoadTemplate(loader SourceLoader, templatePath string, token string) ([]byt
 		slog.Debug("Error joining path", "basePath", basePath, "templatePath", templatePath, "error", err)
 		return nil, fmt.Errorf("error joining path: %w", err)
 	}
+
 	slog.Debug("Final template path resolved", "finalPath", finalPath)
 
 	// Fetch the content.
@@ -87,6 +90,8 @@ func LoadTemplate(loader SourceLoader, templatePath string, token string) ([]byt
 		slog.Debug("Fetching remote template content", "finalPath", finalPath)
 		return fetch(finalPath, token, false)
 	}
+
 	slog.Debug("Reading local template content", "finalPath", finalPath)
+
 	return os.ReadFile(finalPath)
 }
