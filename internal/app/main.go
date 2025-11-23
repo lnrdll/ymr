@@ -42,7 +42,7 @@ func Run(cfg Config) error {
 		// Spec-Less mode
 		specConfig = &spec.SpecConfig{
 			Templates:  []string{cfg.OverrideTemplate},
-			TargetIds:  cfg.OverrideTargets,
+			TargetIds:  []string{""},
 			Parameters: []spec.ParamSet{},
 		}
 

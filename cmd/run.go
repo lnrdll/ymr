@@ -38,9 +38,9 @@ via CLI flags.`,
 				if cfg.OverrideTemplate == "" {
 					log.Fatalf("\nError: in spec-less mode (no -f flag or spec.yaml), --template (-t) is required.\n")
 				}
-				if len(cfg.OverrideTargets) == 0 {
-					log.Fatalf("\nError: in spec-less mode (no -f flag or spec.yaml), at least one --target is required.\n")
-				}
+				// if len(cfg.OverrideTargets) == 0 {
+				// 	log.Fatalf("\nError: in spec-less mode (no -f flag or spec.yaml), at least one --target is required.\n")
+				// }
 				if len(cfg.OverrideParams) == 0 {
 					log.Fatalf("\nError: in spec-less mode (no -f flag or spec.yaml), at least one --param is required.\n")
 				}
