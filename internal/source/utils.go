@@ -1,6 +1,7 @@
 package source
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"log/slog"
@@ -10,6 +11,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 )
+
+const bufferSize = 8192
 
 // Regex for GitHub blob URLs (e.g., .../user/repo/blob/branch/path/to/file)
 var githubBlobRegex = regexp.MustCompile(`^https?://github\.com/([^/]+)/([^/]+)/blob/([^/]+)/(.+)`)
@@ -63,12 +66,14 @@ func isRemotePath(path string) bool {
 // parseSpec unmarshals the spec file content into a SpecConfig struct.
 func parseSpec(content []byte) (*spec.SpecConfig, error) {
 	slog.Debug("Parsing spec content")
+
 	var config spec.SpecConfig
 	err := yaml.Unmarshal(content, &config)
 	if err != nil {
 		slog.Debug("Failed to parse spec YAML", "error", err)
 		return nil, fmt.Errorf("failed to parse spec YAML: %w", err)
 	}
+
 	return &config, nil
 }
 
@@ -93,6 +98,7 @@ func fetch(url string, token string, isSpec bool) ([]byte, error) {
 	if token != "" {
 		req.Header.Add("Authorization", "Bearer "+token)
 	}
+
 	req.Header.Add("Accept", "application/vnd.github.v3.raw")
 	req.Header.Add("Cache-control", "no-cache")
 
@@ -101,6 +107,7 @@ func fetch(url string, token string, isSpec bool) ([]byte, error) {
 		slog.Debug("Failed to fetch remote content", "url", transformedURL, "error", err)
 		return nil, fmt.Errorf("failed to fetch remote content from %s: %w", transformedURL, err)
 	}
+
 	defer func() {
 		if cerr := resp.Body.Close(); cerr != nil {
 			if err == nil {
@@ -114,5 +121,6 @@ func fetch(url string, token string, isSpec bool) ([]byte, error) {
 		return nil, fmt.Errorf("bad response from server for %s: %s", transformedURL, resp.Status)
 	}
 
-	return io.ReadAll(resp.Body)
+	reader := bufio.NewReaderSize(resp.Body, bufferSize)
+	return io.ReadAll(reader)
 }
