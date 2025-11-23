@@ -159,7 +159,7 @@ func Run(cfg Config) error {
 func handleOutput(outputs []processor.RenderedOutput, terminalOutput bool, outputDir string) error {
 	if terminalOutput {
 		for _, output := range outputs {
-			fmt.Println(output.Content)
+			fmt.Print(output.Content)
 		}
 		return nil
 	}
