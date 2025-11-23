@@ -1,9 +1,7 @@
 package source
 
 import (
-	"bufio"
 	"fmt"
-	"io"
 	"log/slog"
 	"os"
 	"ymr/internal/spec"
@@ -19,23 +17,10 @@ type LocalLoader struct {
 func (l *LocalLoader) LoadSpec(token string) (config *spec.SpecConfig, err error) {
 	slog.Debug("Loading spec from local filesystem", "specPath", l.SpecPath)
 
-	file, err := os.Open(l.SpecPath)
+	content, err := os.ReadFile(l.SpecPath)
 	if err != nil {
 		slog.Debug("Failed to open local spec", "specPath", l.SpecPath, "error", err)
 		return nil, fmt.Errorf("opening local spec %s: %w", l.SpecPath, err)
-	}
-
-	defer func() {
-		if cerr := file.Close(); cerr != nil && err == nil {
-			err = cerr
-		}
-	}()
-
-	reader := bufio.NewReaderSize(file, bufferSize)
-	content, err := io.ReadAll(reader)
-	if err != nil {
-		slog.Debug("Failed to read local spec with buffer", "specPath", l.SpecPath, "error", err)
-		return nil, fmt.Errorf("reading local spec %s with buffer: %w", l.SpecPath, err)
 	}
 
 	return parseSpec(content)

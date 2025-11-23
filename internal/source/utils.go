@@ -1,7 +1,6 @@
 package source
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"log/slog"
@@ -11,8 +10,6 @@ import (
 
 	"gopkg.in/yaml.v3"
 )
-
-const bufferSize = 8192
 
 // Regex for GitHub blob URLs (e.g., .../user/repo/blob/branch/path/to/file)
 var githubBlobRegex = regexp.MustCompile(`^https?://github\.com/([^/]+)/([^/]+)/blob/([^/]+)/(.+)`)
@@ -98,7 +95,6 @@ func fetch(url string, token string, isSpec bool) ([]byte, error) {
 	if token != "" {
 		req.Header.Add("Authorization", "Bearer "+token)
 	}
-
 	req.Header.Add("Accept", "application/vnd.github.v3.raw")
 	req.Header.Add("Cache-control", "no-cache")
 
@@ -107,7 +103,6 @@ func fetch(url string, token string, isSpec bool) ([]byte, error) {
 		slog.Debug("Failed to fetch remote content", "url", transformedURL, "error", err)
 		return nil, fmt.Errorf("failed to fetch remote content from %s: %w", transformedURL, err)
 	}
-
 	defer func() {
 		if cerr := resp.Body.Close(); cerr != nil {
 			if err == nil {
@@ -121,6 +116,5 @@ func fetch(url string, token string, isSpec bool) ([]byte, error) {
 		return nil, fmt.Errorf("bad response from server for %s: %s", transformedURL, resp.Status)
 	}
 
-	reader := bufio.NewReaderSize(resp.Body, bufferSize)
-	return io.ReadAll(reader)
+	return io.ReadAll(resp.Body)
 }
