@@ -9,7 +9,7 @@
 
 ## YAML Template Tool
 
-`ymr` (pronounced “*ya·mr*”) is a lightweight, spec-driven command-line tool designed to simplify the generation of YAML files from templates. It’s ideal for managing configuration across multiple environments or targets by replacing placeholders in your YAML templates with values defined in a central spec.yaml file.
+`ymr` (pronounced “*ya·mr*”) is a lightweight, spec-driven command-line tool to generate YAML files from templates. It’s ideal for managing configuration across multiple environments or targets by replacing placeholders in your YAML templates with values defined in a central spec.yaml file.
 
 ### Why?
 
@@ -26,36 +26,32 @@ Existing YAML templating tools — such as `jtt`, `Helm`, or `Kluctl` — are po
 
 This allows for dynamic, reusable configuration generation — letting you define shared values once and selectively override them for specific environments or targets.
 
+In addition, you can pipe the variables to the following functions:
+
+- `lower`: to set all characters to lower case. Example: `from-param: {{ .var | lower }}`
+- 'upper': to set all characters to upper case. Example: `from-param: {{ .var | upper }}`
+- 'replace': to do string substitution. Example: `from-param: {{ .var | replace "." "-" }}`
+
 ### Features
+
 - **Spec-Driven Configuration**: Define all your templates, target environments, and parameters in a single `spec.yaml` file.
 - **Multiple Targets**: Easily generate configurations for different environments (e.g., `dev`, `prd`) from the same set of templates.
 - **Parameter Overrides**: Override any parameter directly from the command line, providing flexibility for ad-hoc changes or CI/CD pipelines.
 - **Flexible Template Sources**: Fetch templates and specs from local files, directories, HTTP URLs, or GitHub repositories.
+- **YAML Schema Compatible**: This means you can run any yaml linting tool against your templates and they just work.
 
 ### Spec-less Mode
 
 `ymr` can be run **without** a `spec.yaml` file, which is useful for simple, one-off template rendering. In this mode, you must provide:
 
 - A template file/URL via the `--template` (`-t`) flag.
-- At least one target ID via the `--target` flag.
 - At least one parameter via the `--param` (`-p`) flag.
 
 This mode is ideal for CI/CD pipelines or simple scripts where a full `spec.yaml` is unnecessary.
 
 ### Installation
 
-To install `ymr`, you need to have Go installed (Go 1.16 or higher is recommended).
-
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/your-username/ymr.git
-    cd ymr
-    ```
-2.  **Install:**
-    ```bash
-    go install .
-    ```
-    This will install the `ymr` executable in your `GOPATH/bin` directory. Ensure your `GOPATH/bin` is in your system's `PATH`.
+TBD
 
 ### Usage
 
@@ -86,24 +82,60 @@ targetIds:
 # A list of parameter sets.
 parameters:
   # --- Shared values ---
-  - values:
+  - targetId: ["dev", "prd"] # Which targets this value set applies to
+    values:
       name: "myapp-name"
-    targetId: # Which targets this value set applies to
-      - dev
-      - prd
 
   # --- Dev-specific values ---
-  - values:
+  - targetId: ["dev"]
+    values:
       minScale: 1
-    targetId:
-      - dev
 
   # --- Prod-specific values ---
-  - values:
+  - targetId: ["prd"]
+    values:
       minScale: 3
       maxScale: 10
-    targetId:
-      - prd
+```
+
+In addition to the default boilerplate, the `init` command also accepts parameters so the boilerplate can be customized.
+
+```bash
+ymr init --templates service.yaml -t dev -t stg -p 'maxScale: 10' -p 'minScale: 1'
+```
+
+Output:
+
+```yaml
+# A list of templates to process.
+# Paths are relative to the location of this spec.yaml.
+templates:
+  - service.yaml
+
+# A simple list of target environments.
+targetIds:
+  - dev
+  - stg
+
+# A list of parameter sets.
+parameters:
+  # --- Shared values for all provided targets ---
+  - targetId:
+      - dev
+      - stg
+    values:
+      maxScale: 10
+      minScale: 1
+  # --- Specific values for target 'dev' ---
+  - targetId: ["dev"]
+    values:
+      maxScale: 10
+      minScale: 1
+  # --- Specific values for target 'stg' ---
+  - targetId: ["stg"]
+    values:
+      maxScale: 10
+      minScale: 1
 ```
 
 #### `ymr run`
@@ -126,6 +158,9 @@ ymr run [flags]
 **Example `ymr run` usage:**
 
 ```bash
+# Specless mode
+ymr run --template ./example/gcp-cloud-run/service.yaml -p version=111 -o -
+
 # Process spec.yaml and output to the 'rendered' directory
 ymr run -s spec.yaml -o rendered
 
@@ -133,7 +168,7 @@ ymr run -s spec.yaml -o rendered
 ymr run -s example/gcp-cloud-run -p minScale=5 -o -
 
 # Render only the 'prd' target
-ymr run -s example/gcp-cloud-run --target prd -o -
+ymr run -s example/gcp-cloud-run -t prd -o -
 
 # Use a GitHub repo directly (requires --token or GITHUB_TOEKN env for private repos)
 ymr run -s https://github.com/lnrdll/ymr/example/k8s@main -o -
