@@ -38,20 +38,7 @@ func Run(cfg Config) error {
 	var loader source.SourceLoader
 	var err error
 
-	if cfg.SpecFile == "" {
-		// Spec-Less mode
-		specConfig = &spec.SpecConfig{
-			Templates:  []string{cfg.OverrideTemplate},
-			TargetIds:  []string{""},
-			Parameters: []spec.ParamSet{},
-		}
-
-		// Create a LocalLoader based on the current directory
-		cwd, _ := os.Getwd()
-		loader = &source.LocalLoader{BaseDir: cwd, SpecPath: ""}
-		slog.Debug("Running in spec-less mode (no spec file found or provided)", "loader", loader)
-	} else {
-		// Spec-file mode
+	if cfg.IsSpecFile {
 		slog.Debug("Using source loader", "source", cfg.SpecFile)
 
 		loader, err = source.NewSourceLoader(cfg.SpecFile, token)
@@ -63,6 +50,17 @@ func Run(cfg Config) error {
 		if err != nil {
 			return fmt.Errorf("loading spec file: %w", err)
 		}
+	} else {
+		specConfig = &spec.SpecConfig{
+			Templates:  []string{cfg.OverrideTemplate},
+			TargetIds:  []string{cfg.SpecFile},
+			Parameters: []spec.ParamSet{},
+		}
+
+		// Create a LocalLoader based on the current directory
+		cwd, _ := os.Getwd()
+		loader = &source.LocalLoader{BaseDir: cwd, SpecPath: ""}
+		slog.Debug("Running in spec-less mode (no spec file found or provided)", "loader", loader)
 	}
 
 	// (Override) Template
