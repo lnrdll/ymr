@@ -27,6 +27,11 @@ func (g *GithubLoader) LoadSpec(token string) (*spec.SpecConfig, error) {
 	return parseSpec(content)
 }
 
+// GetBasePath returns the base URL for resolving relative template paths in a GitHub repository.
+func (g *GithubLoader) GetBasePath() string {
+	return g.GetRawContentURL("", false) // Base path for templates, not necessarily a spec
+}
+
 // GetRawContentURL constructs the URL for fetching a raw file from GitHub.
 // It handles different scenarios: specific relative paths, blob URLs, and repo-root spec files.
 func (g *GithubLoader) GetRawContentURL(relativePath string, isSpec bool) string {
@@ -47,9 +52,4 @@ func (g *GithubLoader) GetRawContentURL(relativePath string, isSpec bool) string
 	// Otherwise, construct the URL for a specific relative path within the repository.
 	fullPath := path.Join(g.Subdir, relativePath)
 	return fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", g.User, g.Repo, g.Ref, fullPath)
-}
-
-// GetBasePath returns the base URL for resolving relative template paths in a GitHub repository.
-func (g *GithubLoader) GetBasePath() string {
-	return g.GetRawContentURL("", false) // Base path for templates, not necessarily a spec
 }
