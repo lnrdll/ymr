@@ -13,112 +13,144 @@ import (
 	"ymr/internal/spec"
 )
 
-// applyParamsOverride applies CLI provided parameter overrides to a given parameter map.
-func applyParamsOverride(paramMap map[string]any, cliOverrides map[string]any) {
-	maps.Copy(paramMap, cliOverrides)
-}
-
 // Run is the main entrypoint for the application logic.
 func Run(cfg Config) error {
-	token := cfg.GithubToken
-	if token == "" {
-		token = os.Getenv("GITHUB_TOKEN")
-	}
+	token := getGithubToken(cfg.GithubToken)
 
 	// Handle output dir/'-o -' logic
-	terminalOutput := false
-	outputDir := cfg.OutputDir
-	if outputDir == "-" {
-		terminalOutput = true
-		outputDir = ""
-	}
+	outputDir, terminalOutput := prepareOutputDir(cfg.OutputDir)
 
 	// Load the specs
-	var specConfig *spec.SpecConfig
-	var loader source.SourceLoader
-	var err error
-
-	if cfg.IsSpecFile {
-		slog.Debug("Using source loader", "source", cfg.SpecFile)
-
-		loader, err = source.NewSourceLoader(cfg.SpecFile, token)
-		if err != nil {
-			return err
-		}
-
-		specConfig, err = loader.LoadSpec(token)
-		if err != nil {
-			return fmt.Errorf("loading spec file: %w", err)
-		}
-	} else {
-		specConfig = &spec.SpecConfig{
-			Templates:  []string{cfg.OverrideTemplate},
-			TargetIds:  []string{cfg.SpecFile},
-			Parameters: []spec.ParamSet{},
-		}
-
-		// Create a LocalLoader based on the current directory
-		cwd, _ := os.Getwd()
-		loader = &source.LocalLoader{BaseDir: cwd, SpecPath: ""}
-		slog.Debug("Running in spec-less mode (no spec file found or provided)", "loader", loader)
+	specConfig, loader, err := loadSpecConfig(cfg, token)
+	if err != nil {
+		return err
 	}
 
 	// (Override) Template
-	if cfg.OverrideTemplate != "" {
-		slog.Debug("Overriding template", "template", cfg.OverrideTemplate)
-		specConfig.Templates = []string{cfg.OverrideTemplate}
-	}
+	applyTemplateOverride(specConfig, cfg.OverrideTemplate)
 
 	// Build the parameter map
 	paramLookup := spec.BuildParamLookup(specConfig)
 
 	// (Override) Parameters
-	paramsOverride, err := spec.ParseCliParams(cfg.OverrideParams)
+	paramsOverride, err := applyParamsOverrides(paramLookup, cfg.OverrideParams)
 	if err != nil {
-		return fmt.Errorf("parsing override parameters: %w", err)
+		return err
+	}
+
+	// (Override) Targets
+	targetsToRender := filterTargets(specConfig.TargetIds, cfg.OverrideTargets)
+
+	// Process each template against each target
+	allOutputs := processTemplates(specConfig, loader, token, targetsToRender, paramLookup, paramsOverride, cfg.OverrideTemplate)
+
+	// Handle Output
+	return handleOutput(allOutputs, terminalOutput, outputDir)
+}
+
+// handleOutput writes rendered content to files or to the console.
+// It creates the output directory if it doesn't exist.
+func handleOutput(outputs []processor.RenderedOutput, terminalOutput bool, outputDir string) error {
+	if terminalOutput {
+		for _, output := range outputs {
+			fmt.Print(output.Content)
+		}
+		return nil
+	}
+
+	if outputDir != "" {
+		if err := os.MkdirAll(outputDir, 0755); err != nil {
+			return fmt.Errorf("creating output directory '%s': %w", outputDir, err)
+		}
+	}
+
+	for _, output := range outputs {
+		outPath := filepath.Join(outputDir, output.TargetFile)
+		err := os.WriteFile(outPath, []byte(output.Content), 0644)
+		if err != nil {
+			slog.Debug(fmt.Sprintf("Skipping file '%s' due to error: %v", outPath, err))
+			continue
+		} else {
+			slog.Debug("Generated file", "path", outPath)
+		}
+	}
+
+	return nil
+}
+
+// prepareOutputDir determines the output directory and whether to print to the terminal.
+func prepareOutputDir(cfgOutputDir string) (string, bool) {
+	if cfgOutputDir == "-" {
+		return "", true // Terminal output
+	}
+	return cfgOutputDir, false // Directory output
+}
+
+// applyParamsOverride applies CLI provided parameter overrides to a given parameter map.
+func applyParamsOverride(paramMap map[string]any, cliOverrides map[string]any) {
+	maps.Copy(paramMap, cliOverrides)
+}
+
+// applyParamsOverrides parses and applies CLI parameter overrides to the parameter lookup.
+// It returns the parsed override parameters.
+func applyParamsOverrides(paramLookup map[string]map[string]any, overrideParams []string) (map[string]any, error) {
+	paramsOverride, err := spec.ParseCliParams(overrideParams)
+	if err != nil {
+		return nil, fmt.Errorf("parsing override parameters: %w", err)
 	}
 
 	if len(paramsOverride) > 0 {
 		slog.Debug("Overriding parameters", "count", len(paramsOverride), "parameters", paramsOverride)
-		for targetId, paramMap := range paramLookup {
+		for _, paramMap := range paramLookup {
 			applyParamsOverride(paramMap, paramsOverride)
-			paramLookup[targetId] = paramMap
 		}
 	}
+	return paramsOverride, nil
+}
 
-	// (Override) Targets
-	targetsToRender := specConfig.TargetIds
-	if len(cfg.OverrideTargets) > 0 {
-		filteredTargets := make([]string, 0)
-		cliTargetSet := make(map[string]bool)
-		for _, t := range cfg.OverrideTargets {
-			cliTargetSet[t] = true
-		}
-		for _, specTargetId := range specConfig.TargetIds {
-			if _, ok := cliTargetSet[specTargetId]; ok {
-				filteredTargets = append(filteredTargets, specTargetId)
-			}
-		}
-		targetsToRender = filteredTargets
-		slog.Debug("Rendering specific targets", "targets", targetsToRender)
-	} else {
-		slog.Debug("Rendering all targets", "count", len(targetsToRender))
+// filterTargets filters the targets to be rendered based on the provided override targets.
+func filterTargets(specTargetIds []string, overrideTargets []string) []string {
+	if len(overrideTargets) == 0 {
+		slog.Debug("Rendering all targets", "count", len(specTargetIds))
+		return specTargetIds
 	}
 
-	// Process each template against each target
+	filteredTargets := make([]string, 0)
+	cliTargetSet := make(map[string]bool)
+	for _, t := range overrideTargets {
+		cliTargetSet[t] = true
+	}
+	for _, specTargetId := range specTargetIds {
+		if _, ok := cliTargetSet[specTargetId]; ok {
+			filteredTargets = append(filteredTargets, specTargetId)
+		}
+	}
+	slog.Debug("Rendering specific targets", "targets", filteredTargets)
+	return filteredTargets
+}
+
+// processTemplates processes each template against each target and returns the rendered outputs.
+func processTemplates(
+	specConfig *spec.SpecConfig,
+	loader source.SourceLoader,
+	token string,
+	targetsToRender []string,
+	paramLookup map[string]map[string]any,
+	paramsOverride map[string]any,
+	overrideTemplate string,
+) []processor.RenderedOutput {
 	allOutputs := []processor.RenderedOutput{}
 	for _, templatePath := range specConfig.Templates {
 		var templateContent []byte
 		var err error
 
 		loaderToUse := loader
-		if cfg.OverrideTemplate != "" {
+		if overrideTemplate != "" {
 			cwd, _ := os.Getwd()
 			loaderToUse = &source.LocalLoader{BaseDir: cwd, SpecPath: ""}
 		}
 
 		templateContent, err = source.LoadTemplate(loaderToUse, templatePath, token)
-
 		if err != nil {
 			slog.Debug(fmt.Sprintf("Skipping template '%s' due to error: %v", templatePath, err))
 			continue
@@ -154,36 +186,50 @@ func Run(cfg Config) error {
 		}
 	}
 
-	// Handle Output
-	return handleOutput(allOutputs, terminalOutput, outputDir)
+	return allOutputs
 }
 
-// handleOutput writes rendered content to files or to the console.
-// It creates the output directory if it doesn't exist.
-func handleOutput(outputs []processor.RenderedOutput, terminalOutput bool, outputDir string) error {
-	if terminalOutput {
-		for _, output := range outputs {
-			fmt.Print(output.Content)
-		}
-		return nil
-	}
-
-	if outputDir != "" {
-		if err := os.MkdirAll(outputDir, 0755); err != nil {
-			return fmt.Errorf("creating output directory '%s': %w", outputDir, err)
-		}
-	}
-
-	for _, output := range outputs {
-		outPath := filepath.Join(outputDir, output.TargetFile)
-		err := os.WriteFile(outPath, []byte(output.Content), 0644)
+// loadSpecConfig loads the specification configuration based on the provided application config.
+// It handles both spec file-based and spec-less modes.
+func loadSpecConfig(cfg Config, token string) (*spec.SpecConfig, source.SourceLoader, error) {
+	if cfg.IsSpecFile {
+		slog.Debug("Using source loader", "source", cfg.SpecFile)
+		loader, err := source.NewSourceLoader(cfg.SpecFile, token)
 		if err != nil {
-			slog.Debug(fmt.Sprintf("Skipping file '%s' due to error: %v", outPath, err))
-			continue
-		} else {
-			slog.Debug("Generated file", "path", outPath)
+			return nil, nil, err
 		}
+		specConfig, err := loader.LoadSpec(token)
+		if err != nil {
+			return nil, nil, fmt.Errorf("loading spec file: %w", err)
+		}
+		return specConfig, loader, nil
 	}
 
-	return nil
+	// Spec-less mode
+	specConfig := &spec.SpecConfig{
+		Templates:  []string{cfg.OverrideTemplate},
+		TargetIds:  []string{cfg.SpecFile},
+		Parameters: []spec.ParamSet{},
+	}
+	cwd, _ := os.Getwd()
+	loader := &source.LocalLoader{BaseDir: cwd, SpecPath: ""}
+	slog.Debug("Running in spec-less mode", "loader", loader)
+	return specConfig, loader, nil
+}
+
+// applyTemplateOverride overrides the templates in the spec config if an override is provided.
+func applyTemplateOverride(specConfig *spec.SpecConfig, overrideTemplate string) {
+	if overrideTemplate != "" {
+		slog.Debug("Overriding template", "template", overrideTemplate)
+		specConfig.Templates = []string{overrideTemplate}
+	}
+}
+
+// getGithubToken return a github token if provided.
+func getGithubToken(t string) string {
+	if t == "" {
+		return os.Getenv("GITHUB_TOKEN")
+	}
+
+	return t
 }
