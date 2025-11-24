@@ -20,31 +20,38 @@ type SourceLoader interface {
 // NewSourceLoader determines the appropriate loader (Local, GitHub, HTTP) based on the provided path.
 func NewSourceLoader(path string, token string) (SourceLoader, error) {
 	slog.Debug("Attempting to create source loader", "path", path)
-	// GitHub URL: github.com/user/repo/...
+
+	// GitHub
 	if githubLoader, ok := ParseGitHubURL(path); ok && githubLoader.Ref != "" {
 		slog.Debug("Detected GitHub source", "user", githubLoader.User, "repo", githubLoader.Repo, "subdir", githubLoader.Subdir, "ref", githubLoader.Ref)
+
 		return &githubLoader, nil
 	}
 
-	// Check for local file or directory
+	// Local file or directory
 	stat, statErr := os.Stat(path)
 	if statErr == nil {
 		slog.Debug("Detected local path", "path", path, "is_dir", stat.IsDir())
-		baseDir := path
-		specPath := filepath.Join(path, "spec.yaml")
-		if !stat.IsDir() {
-			baseDir = filepath.Dir(path)
-			specPath = path
+
+		if stat.IsDir() {
+			// If it's a directory, default to spec.yaml
+			return &LocalLoader{
+				BaseDir:  path,
+				SpecPath: filepath.Join(path, "spec.yaml"),
+			}, nil
+		} else {
+			// If it's a file, use it directly
+			return &LocalLoader{
+				BaseDir:  filepath.Dir(path),
+				SpecPath: path,
+			}, nil
 		}
-		return &LocalLoader{
-			BaseDir:  baseDir,
-			SpecPath: specPath,
-		}, nil
 	}
 
-	// Check for a direct HTTP(S) URL
+	// Direct HTTP(S) URL
 	if isRemotePath(path) {
 		slog.Debug("Detected HTTP source", "url", path)
+
 		baseURL, err := url.Parse(path)
 		if err != nil {
 			slog.Debug("Invalid HTTP URL", "url", path, "error", err)
@@ -56,6 +63,7 @@ func NewSourceLoader(path string, token string) (SourceLoader, error) {
 	}
 
 	slog.Debug("Could not determine source type", "path", path)
+
 	return nil, fmt.Errorf("could not determine source type for path: %s", path)
 }
 

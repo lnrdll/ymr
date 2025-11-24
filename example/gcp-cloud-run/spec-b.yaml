@@ -1,0 +1,35 @@
+templates:
+  - service.yaml
+
+targetIds:
+  - dev
+  - prd
+
+parameters:
+  # --- Shared values for dev and prd ---
+  - values:
+      concurrency: 250
+    targetId: # Which targets this value set applies to
+      - dev
+      - prd
+
+  # --- Dev-specific values ---
+  - values:
+      minScale: 1
+      serviceAccount: my-service-account@dev-project.iam.gserviceaccount.com
+      version: 2025.11.17
+      envVars:
+        - name: HELLO
+          value: world
+        - name: hello
+          value: WORLD
+    targetId:
+      - dev
+
+  # --- Prod-specific values ---
+  - values:
+      minScale: 3
+      serviceAccount: my-service-account@prd-project.iam.gserviceaccount.com
+      version: 2025.10.17
+    targetId:
+      - prd
