@@ -29,8 +29,8 @@ This allows for dynamic, reusable configuration generation — letting you defin
 In addition, you can pipe the variables to the following functions:
 
 - `lower`: to set all characters to lower case. Example: `from-param: {{ .var | lower }}`
-- 'upper': to set all characters to upper case. Example: `from-param: {{ .var | upper }}`
-- 'replace': to do string substitution. Example: `from-param: {{ .var | replace "." "-" }}`
+- `upper`: to set all characters to upper case. Example: `from-param: {{ .var | upper }}`
+- `replace`: to do string substitution. Example: `from-param: {{ .var | replace "." "-" }}`
 
 ### Features
 
