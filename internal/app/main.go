@@ -65,8 +65,8 @@ func Run(cfg Config) error {
 
 	// (Override) Template
 	if cfg.OverrideTemplate != "" {
-		specConfig.Templates = []string{cfg.OverrideTemplate}
 		slog.Debug("Overriding template", "template", cfg.OverrideTemplate)
+		specConfig.Templates = []string{cfg.OverrideTemplate}
 	}
 
 	// Build the parameter map
@@ -111,7 +111,13 @@ func Run(cfg Config) error {
 		var templateContent []byte
 		var err error
 
-		templateContent, err = source.LoadTemplate(loader, templatePath, token)
+		loaderToUse := loader
+		if cfg.OverrideTemplate != "" {
+			cwd, _ := os.Getwd()
+			loaderToUse = &source.LocalLoader{BaseDir: cwd, SpecPath: ""}
+		}
+
+		templateContent, err = source.LoadTemplate(loaderToUse, templatePath, token)
 
 		if err != nil {
 			slog.Debug(fmt.Sprintf("Skipping template '%s' due to error: %v", templatePath, err))
