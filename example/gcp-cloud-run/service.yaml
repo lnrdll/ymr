@@ -19,6 +19,7 @@ metadata:
 spec:
   template:
     metadata:
+      name: test # from-param: test-{{ .version | "." "-" }}
       annotations:
         run.googleapis.com/execution-environment: gen2
         run.googleapis.com/sessionAffinity: "false"
@@ -31,7 +32,6 @@ spec:
         - name: FOO
           value: BAR
         image: image/test:2025.10.17 # from-param: location/to/docker/image/service:{{ .version }}
-        name: jira2gcal-1
         ports:
         - containerPort: 8080
           name: http1

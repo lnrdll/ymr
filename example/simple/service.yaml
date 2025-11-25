@@ -1,0 +1,4 @@
+version: 0.0.0 # from-param: {{ .version }}
+release: test # from-param: test-{{ .version | replace "." "-" }}
+minScale: 0 # from-param: {{ .minScale }}
+maxScale: 0 # from-param: {{ .maxScale }}

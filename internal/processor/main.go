@@ -154,27 +154,26 @@ func updateNodeValue(node *yaml.Node, newValue any, directive string) {
 
 // executeTemplate renders a Go template string with the provided parameters.
 func executeTemplate(tmplStr string, params map[string]any) (string, error) {
+	slog.Debug("executeTemplate", "template", tmplStr, "params", params)
+
 	tmpl, err := template.New("template").
 		Option("missingkey=error").
 		Funcs(template.FuncMap{
 			"lower": strings.ToLower,
 			"upper": strings.ToUpper,
-			"replace": func(old, new, s string) string {
-				slog.Debug("Processing template replace string", "old", old, "new", new, "s", s)
-				return strings.ReplaceAll(s, old, new)
+			"replace": func(old, new string, s any) string {
+				return strings.ReplaceAll(fmt.Sprint(s), old, new)
 			},
 		}).
 		Parse(tmplStr)
 
 	if err != nil {
-		slog.Debug("Failed to parse template string", "template", tmplStr, "error", err)
 		return "", fmt.Errorf("failed to parse template string %s: %w", tmplStr, err)
 	}
 
 	var buf bytes.Buffer
 	err = tmpl.Execute(&buf, params)
 	if err != nil {
-		slog.Debug("Failed to execute template", "template", tmplStr, "error", err)
 		return "", fmt.Errorf("failed to execute template %s: %w", tmplStr, err)
 	}
 

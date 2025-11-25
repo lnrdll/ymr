@@ -1,0 +1,25 @@
+templates:
+  - service.yaml
+
+targetIds:
+  - dev
+  - prd
+
+parameters:
+  # --- Shared values ---
+  - targetId: ["dev", "prd"] # Which targets this value set applies to
+    values:
+      version: 1.1.1
+      name: "myapp-name"
+
+  # --- Dev-specific values ---
+  - targetId: ["dev"]
+    values:
+      minScale: 1
+
+  # --- Prod-specific values ---
+  - targetId: ["prd"]
+    values:
+      minScale: 3
+      maxScale: 10
+
