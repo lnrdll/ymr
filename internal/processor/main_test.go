@@ -32,10 +32,31 @@ func TestProcessContent(t *testing.T) {
 			desc:         "Should allow use of the 'lower' function",
 		},
 		{
+			name:         "Template Function - Upper",
+			inputYAML:    "environment: PROD # from-param: {{ .Env | upper }}",
+			params:       map[string]any{"Env": "staging"},
+			expectedYAML: "environment: STAGING",
+			desc:         "Should allow use of the 'lower' function",
+		},
+		{
 			name:         "Template Function - Replace",
 			inputYAML:    `image: nginx # from-param: {{ .Img | replace "nginx" "alpine" }}`,
 			params:       map[string]any{"Img": "my-nginx-image"},
 			expectedYAML: "image: my-alpine-image",
+			desc:         "Should correctly handle the replace function order when using pipes",
+		},
+		{
+			name:         "Template Function - Replace Version",
+			inputYAML:    `image: nginx # from-param: image-{{ .version | replace "." "-" }}`,
+			params:       map[string]any{"version": "2025.11.11"},
+			expectedYAML: "image: image-2025-11-11",
+			desc:         "Should correctly handle the replace function order when using pipes",
+		},
+		{
+			name:         "Template Function - Replace Number",
+			inputYAML:    `image: nginx # from-param: image-{{ .version | replace "." "-" }}`,
+			params:       map[string]any{"version": "202511"},
+			expectedYAML: "image: image-202511",
 			desc:         "Should correctly handle the replace function order when using pipes",
 		},
 		{
