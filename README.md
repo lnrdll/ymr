@@ -1,6 +1,5 @@
 <a name="readme-top"></a>
 
-<p align="center">
 ```
 ██╗   ██╗███╗   ███╗██████╗ 
 ╚██╗ ██╔╝████╗ ████║██╔══██╗
@@ -10,13 +9,13 @@
    ╚═╝   ╚═╝     ╚═╝╚═╝  ╚═╝ (ya·mr)
 ```
 
+<p align="center">
 `ymr` (pronounced “*ya·mr*”) is a lightweight, spec-driven command-line tool to generate YAML files from templates. It’s ideal for managing configuration across multiple environments or targets by replacing placeholders in your YAML templates with values defined in a central spec.yaml file.
 <br />
 <a href="https://github.com/lnrdll/ymr/issues/new?labels=bug&template=bug_report.md">Report Bug</a>
 ·
 <a href="https://github.com/lnrdll/ymr/issues/new?labels=enhancement&template=feature_request.md">Request Feature</a>
 </p>
-</div>
 
 ---
 
