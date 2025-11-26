@@ -1,7 +1,7 @@
 <a name="readme-top"></a>
 
 <div align="center">
-<img height="535" alt="cobra-logo" src=".assets/ymr.png" />
+<img height="535" alt="ymr-logo" src=".assets/ymr.png" />
 
 <br />
 
