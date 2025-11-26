@@ -19,7 +19,7 @@ metadata:
 spec:
   template:
     metadata:
-      name: test # from-param: test-{{ .version | "." "-" }}
+      name: test # from-param: test-{{ .version | replace "." "-" }}
       annotations:
         run.googleapis.com/execution-environment: gen2
         run.googleapis.com/sessionAffinity: "false"

@@ -1,3 +1,6 @@
+<a name="readme-top"></a>
+
+<p align="center">
 ```
 ██╗   ██╗███╗   ███╗██████╗ 
 ╚██╗ ██╔╝████╗ ████║██╔══██╗
@@ -7,17 +10,41 @@
    ╚═╝   ╚═╝     ╚═╝╚═╝  ╚═╝ (ya·mr)
 ```
 
-## YAML Template Tool
-
 `ymr` (pronounced “*ya·mr*”) is a lightweight, spec-driven command-line tool to generate YAML files from templates. It’s ideal for managing configuration across multiple environments or targets by replacing placeholders in your YAML templates with values defined in a central spec.yaml file.
+<br />
+<a href="https://github.com/lnrdll/ymr/issues/new?labels=bug&template=bug_report.md">Report Bug</a>
+·
+<a href="https://github.com/lnrdll/ymr/issues/new?labels=enhancement&template=feature_request.md">Request Feature</a>
+</p>
+</div>
+
+---
+
+**TOC**
+- [Why?](#why)
+- [How it Works](#how-it-works)
+- [Features](#features)
+- [Spec-less Mode](#spec-less-mode)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Template Syntax](#template-syntax)
+- [Examples](#examples)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
 
 ### Why?
+<a name="why"></a>
 
 Existing YAML templating tools — such as `jtt`, `Helm`, or `Kluctl` — are powerful and versatile, but they often come with a steep learning curve and impose specific formatting or structural requirements on your YAML files.
 
 `ymr` takes a simpler, more flexible approach. You simply add comments to your existing YAML configuration, and if they match your defined specifications, `ymr` performs the substitutions. This means you can use `ymr` with any YAML file — including those already managed by other tools — without modifying your current workflow or file structure.
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 ### How it Works
+<a name="how-it-works"></a>
 
 `ymr` processes YAML templates by substituting placeholders with values from your spec.yaml. It supports two main types of placeholders:
 
@@ -32,7 +59,10 @@ In addition, you can pipe the variables to the following functions:
 - `upper`: to set all characters to upper case. Example: `from-param: {{ .var | upper }}`
 - `replace`: to do string substitution. Example: `from-param: {{ .var | replace "." "-" }}`
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 ### Features
+<a name="features"></a>
 
 - **Spec-Driven Configuration**: Define all your templates, target environments, and parameters in a single `spec.yaml` file.
 - **Multiple Targets**: Easily generate configurations for different environments (e.g., `dev`, `prd`) from the same set of templates.
@@ -40,7 +70,10 @@ In addition, you can pipe the variables to the following functions:
 - **Flexible Template Sources**: Fetch templates and specs from local files, directories, HTTP URLs, or GitHub repositories.
 - **YAML Schema Compatible**: This means you can run any yaml linting tool against your templates and they just work.
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 ### Spec-less Mode
+<a name="spec-less-mode"></a>
 
 `ymr` can be run **without** a `spec.yaml` file, which is useful for simple, one-off template rendering. In this mode, you must provide:
 
@@ -49,11 +82,22 @@ In addition, you can pipe the variables to the following functions:
 
 This mode is ideal for CI/CD pipelines or simple scripts where a full `spec.yaml` is unnecessary.
 
-### Installation
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-TBD
+### Installation
+<a name="installation"></a>
+
+You can install `ymr` using `go install`:
+```bash
+go install github.com/lnrdll/ymr@latest
+```
+
+Alternatively, you can download the binary from the [releases page](https://github.com/lnrdll/ymr/releases).
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Usage
+<a name="usage"></a>
 
 `ymr` provides two main commands: `init` and `run`.
 
@@ -177,7 +221,10 @@ ymr run -s https://github.com/lnrdll/ymr/example/k8s@main -o -
 ymr run -t https://github.com/lnrdll/ymr/blob/main/example/k8s/deployment.yaml --target dev -p name=example -o -
 ```
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 ### Template Syntax
+<a name="template-syntax"></a>
 
 `ymr` uses special comments within your YAML templates to identify where parameters should be injected.
 
@@ -219,10 +266,34 @@ ymr run -t https://github.com/lnrdll/ymr/blob/main/example/k8s/deployment.yaml -
         version: v1.0.0
     ```
 
+### Examples
+<a name="examples"></a>
+
+The [`example`](./example) directory contains a few examples of how to use `ymr`.
+
+- [`simple`](./example/simple): A simple example of how to use `ymr` with a single template and a single target.
+- [`k8s`](./example/k8s): A more complex example of how to use `ymr` to generate Kubernetes manifests for multiple targets.
+- [`gcp-cloud-run`](./example/gcp-cloud-run): An example of how to use `ymr` to generate a GCP Cloud Run service definition for multiple targets.
+- [`docker-composer`](./example/docker-composer): An example of how to use `ymr` to generate a Docker Compose file for multiple targets.
+
+To run the examples, `cd` into the example directory and run `ymr run -o -`:
+```bash
+cd example/simple
+ymr run -s . -o -
+```
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 ### Contributing
+<a name="contributing"></a>
 
 You're welcome to open issues or submit pull requests, though responses may take some time.
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 ### License
+<a name="license"></a>
 
 This project is licensed under the MIT License. See the `LICENSE` file for details.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>

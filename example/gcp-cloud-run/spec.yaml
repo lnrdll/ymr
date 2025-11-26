@@ -9,12 +9,13 @@ parameters:
   # --- Shared values for dev and prd ---
   - values:
       concurrency: 250
-    targetId: # Which targets this value set applies to
+    targetId:
       - dev
       - prd
 
   # --- Dev-specific values ---
-  - values:
+  - targetId: ["dev"]
+    values:
       minScale: 1
       serviceAccount: my-service-account@dev-project.iam.gserviceaccount.com
       version: 2025.11.17
@@ -23,13 +24,10 @@ parameters:
           value: world
         - name: hello
           value: WORLD
-    targetId:
-      - dev
 
   # --- Prod-specific values ---
-  - values:
+  - targetId: ["prd"]
+    values:
       minScale: 3
       serviceAccount: my-service-account@prd-project.iam.gserviceaccount.com
       version: 2025.10.17
-    targetId:
-      - prd
