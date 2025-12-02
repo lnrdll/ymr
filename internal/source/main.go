@@ -11,21 +11,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// LoadValidations loads a YAML file containing a list of validations.
-func LoadValidations(filePath string, token string) ([]spec.Validation, error) {
-	data, err := fetch(filePath, token, false)
-	if err != nil {
-		return nil, fmt.Errorf("reading validation file '%s': %w", filePath, err)
-	}
-
-	var validations []spec.Validation
-	if err := yaml.Unmarshal(data, &validations); err != nil {
-		return nil, fmt.Errorf("unmarshaling validation file '%s': %w", filePath, err)
-	}
-
-	return validations, nil
-}
-
 // SourceLoader defines the interface for any configuration source
 type SourceLoader interface {
 	// LoadSpec fetches and parses the spec.yaml file.
@@ -127,4 +112,19 @@ func LoadTemplate(loader SourceLoader, templatePath string, token string) ([]byt
 	slog.Debug("Reading local template content", "finalPath", finalPath)
 
 	return os.ReadFile(finalPath)
+}
+
+// LoadValidations loads a YAML file containing a list of validations.
+func LoadValidations(filePath string, token string) ([]spec.Validation, error) {
+	data, err := fetch(filePath, token, false)
+	if err != nil {
+		return nil, fmt.Errorf("reading validation file '%s': %w", filePath, err)
+	}
+
+	var validations []spec.Validation
+	if err := yaml.Unmarshal(data, &validations); err != nil {
+		return nil, fmt.Errorf("unmarshaling validation file '%s': %w", filePath, err)
+	}
+
+	return validations, nil
 }
