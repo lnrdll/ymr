@@ -5,6 +5,15 @@ targetIds:
   - dev
   - prd
 
+validations:
+  - rule: "params.minScale >= 1"
+    message: "minScale cannot be negative or zero"
+    targetId: ["prd"]
+
+  - rule: "params.minScale <= params.maxScale"
+    message: "minScale must be less than or equal to maxScale"
+    targetId: ["prd"]
+
 parameters:
   # --- Shared values ---
   - targetId: ["dev", "prd"] # Which targets this value set applies to
@@ -20,6 +29,6 @@ parameters:
   # --- Prod-specific values ---
   - targetId: ["prd"]
     values:
-      minScale: 3
+      minScale: 2
       maxScale: 10
 

@@ -104,4 +104,11 @@ func init() {
 		false,
 		"Enable debug logging",
 	)
+
+	runCmd.PersistentFlags().StringVar(
+		&cfg.ValidationFile,
+		"validation",
+		"",
+		"Path to a validation file. If provided, this will override any validations in the spec file.",
+	)
 }

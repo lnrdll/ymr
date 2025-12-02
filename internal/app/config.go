@@ -9,5 +9,6 @@ type Config struct {
 	OverrideTargets  []string
 	OverrideTemplate string
 	SpecFile         string
+	ValidationFile   string
 	IsSpecFile       bool
 }

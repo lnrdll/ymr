@@ -6,11 +6,13 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"ymr/internal/processor"
 	"ymr/internal/source"
 	"ymr/internal/spec"
+	"ymr/internal/validate"
 )
 
 // Run is the main entrypoint for the application logic.
@@ -41,6 +43,21 @@ func Run(cfg Config) error {
 	// (Override) Targets
 	targetsToRender := filterTargets(specConfig.TargetIds, cfg.OverrideTargets)
 
+	// Load validations
+	validations := specConfig.Validations
+	if cfg.ValidationFile != "" {
+		var err error
+		validations, err = source.LoadValidations(cfg.ValidationFile, token)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Validate Rules
+	if err := validateTargets(targetsToRender, paramLookup, paramsOverride, validations); err != nil {
+		return err
+	}
+
 	// Process each template against each target
 	allOutputs := processTemplates(specConfig, loader, token, targetsToRender, paramLookup, paramsOverride, cfg.OverrideTemplate)
 
@@ -48,9 +65,49 @@ func Run(cfg Config) error {
 	return handleOutput(allOutputs, terminalOutput, outputDir)
 }
 
+func validateTargets(
+	targetsToRender []string,
+	paramLookup map[string]map[string]any,
+	paramsOverride map[string]any,
+	validations []spec.Validation,
+) error {
+	for _, targetId := range targetsToRender {
+		params, ok := paramLookup[targetId]
+		if !ok {
+			params = make(map[string]any)
+		}
+
+		if len(paramsOverride) > 0 && !ok {
+			applyParamsOverride(params, paramsOverride)
+		}
+
+		// Filter validations for the current target
+		targetValidations := []spec.Validation{}
+		for _, v := range validations {
+			if len(v.TargetId) == 0 {
+				targetValidations = append(targetValidations, v)
+				continue
+			}
+
+			if slices.Contains(v.TargetId, targetId) {
+				targetValidations = append(targetValidations, v)
+			}
+		}
+
+		if err := validate.Check(params, targetValidations); err != nil {
+			return fmt.Errorf("validation failed for target '%s': %w", targetId, err)
+		}
+	}
+	return nil
+}
+
 // handleOutput writes rendered content to files or to the console.
 // It creates the output directory if it doesn't exist.
-func handleOutput(outputs []processor.RenderedOutput, terminalOutput bool, outputDir string) error {
+func handleOutput(
+	outputs []processor.RenderedOutput,
+	terminalOutput bool,
+	outputDir string,
+) error {
 	if terminalOutput {
 		for _, output := range outputs {
 			fmt.Print(output.Content)
@@ -93,7 +150,10 @@ func applyParamsOverride(paramMap map[string]any, cliOverrides map[string]any) {
 
 // applyParamsOverrides parses and applies CLI parameter overrides to the parameter lookup.
 // It returns the parsed override parameters.
-func applyParamsOverrides(paramLookup map[string]map[string]any, overrideParams []string) (map[string]any, error) {
+func applyParamsOverrides(
+	paramLookup map[string]map[string]any,
+	overrideParams []string,
+) (map[string]any, error) {
 	paramsOverride, err := spec.ParseCliParams(overrideParams)
 	if err != nil {
 		return nil, fmt.Errorf("parsing override parameters: %w", err)

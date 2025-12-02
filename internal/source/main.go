@@ -7,7 +7,24 @@ import (
 	"os"
 	"path/filepath"
 	"ymr/internal/spec"
+
+	"gopkg.in/yaml.v3"
 )
+
+// LoadValidations loads a YAML file containing a list of validations.
+func LoadValidations(filePath string, token string) ([]spec.Validation, error) {
+	data, err := fetch(filePath, token, false)
+	if err != nil {
+		return nil, fmt.Errorf("reading validation file '%s': %w", filePath, err)
+	}
+
+	var validations []spec.Validation
+	if err := yaml.Unmarshal(data, &validations); err != nil {
+		return nil, fmt.Errorf("unmarshaling validation file '%s': %w", filePath, err)
+	}
+
+	return validations, nil
+}
 
 // SourceLoader defines the interface for any configuration source
 type SourceLoader interface {
