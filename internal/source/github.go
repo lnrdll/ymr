@@ -19,11 +19,12 @@ type GithubLoader struct {
 func (g *GithubLoader) LoadSpec(token string) (*spec.SpecConfig, error) {
 	specURL := g.GetRawContentURL("spec.yaml", true)
 	slog.Debug("Loading spec from GitHub", "specURL", specURL)
+
 	content, err := fetch(specURL, token, true)
 	if err != nil {
-		slog.Debug("Failed to fetch spec from GitHub", "specURL", specURL, "error", err)
-		return nil, fmt.Errorf("fetching spec from %s: %w", specURL, err)
+		return nil, fmt.Errorf("fetching spec from GitHub %s: %w", specURL, err)
 	}
+
 	return parseSpec(content)
 }
 

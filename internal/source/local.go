@@ -19,7 +19,6 @@ func (l *LocalLoader) LoadSpec(token string) (config *spec.SpecConfig, err error
 
 	content, err := os.ReadFile(l.SpecPath)
 	if err != nil {
-		slog.Debug("Failed to open local spec", "specPath", l.SpecPath, "error", err)
 		return nil, fmt.Errorf("opening local spec %s: %w", l.SpecPath, err)
 	}
 

@@ -30,7 +30,7 @@ func ParseCliParams(params []string) (map[string]any, error) {
 	for _, p := range params {
 		parts := strings.SplitN(p, "=", 2)
 		if len(parts) > 2 {
-			return nil, fmt.Errorf("invalid param format: '%s'. Use key=value", p)
+			return nil, fmt.Errorf("invalid parameter format: '%s'. Use key=value", p)
 		}
 
 		key := parts[0]

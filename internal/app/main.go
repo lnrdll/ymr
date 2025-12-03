@@ -54,7 +54,7 @@ func Run(cfg Config) error {
 	}
 
 	// Validate Rules
-	if err := validateTargets(targetsToRender, paramLookup, paramsOverride, policies); err != nil {
+	if err := validatePolicyTargets(targetsToRender, paramLookup, paramsOverride, policies); err != nil {
 		return err
 	}
 
@@ -65,7 +65,7 @@ func Run(cfg Config) error {
 	return handleOutput(allOutputs, terminalOutput, outputDir)
 }
 
-func validateTargets(
+func validatePolicyTargets(
 	targetsToRender []string,
 	paramLookup map[string]map[string]any,
 	paramsOverride map[string]any,
@@ -81,7 +81,7 @@ func validateTargets(
 			applyParamsOverride(params, paramsOverride)
 		}
 
-		// Filter validations for the current target
+		// Filter policies for the current target
 		targetPolicies := []spec.Policy{}
 		for _, v := range policies {
 			if len(v.TargetId) == 0 {
@@ -95,9 +95,10 @@ func validateTargets(
 		}
 
 		if err := policy.Check(params, targetPolicies); err != nil {
-			return fmt.Errorf("validation failed for target '%s': %w", targetId, err)
+			return fmt.Errorf("policy failed for target '%s': %w", targetId, err)
 		}
 	}
+
 	return nil
 }
 
@@ -140,7 +141,7 @@ func prepareOutputDir(cfgOutputDir string) (string, bool) {
 	if cfgOutputDir == "-" {
 		return "", true // Terminal output
 	}
-	return cfgOutputDir, false // Directory output
+	return cfgOutputDir, false
 }
 
 // applyParamsOverride applies CLI provided parameter overrides to a given parameter map.
@@ -177,14 +178,17 @@ func filterTargets(specTargetIds []string, overrideTargets []string) []string {
 
 	filteredTargets := make([]string, 0)
 	cliTargetSet := make(map[string]bool)
+
 	for _, t := range overrideTargets {
 		cliTargetSet[t] = true
 	}
+
 	for _, specTargetId := range specTargetIds {
 		if _, ok := cliTargetSet[specTargetId]; ok {
 			filteredTargets = append(filteredTargets, specTargetId)
 		}
 	}
+
 	slog.Debug("Rendering specific targets", "targets", filteredTargets)
 	return filteredTargets
 }
@@ -200,6 +204,7 @@ func processTemplates(
 	overrideTemplate string,
 ) []processor.RenderedOutput {
 	allOutputs := []processor.RenderedOutput{}
+
 	for _, templatePath := range specConfig.Templates {
 		var templateContent []byte
 		var err error
@@ -254,14 +259,17 @@ func processTemplates(
 func loadSpecConfig(cfg Config, token string) (*spec.SpecConfig, source.SourceLoader, error) {
 	if cfg.IsSpecFile {
 		slog.Debug("Using source loader", "source", cfg.SpecFile)
+
 		loader, err := source.NewSourceLoader(cfg.SpecFile, token)
 		if err != nil {
 			return nil, nil, err
 		}
+
 		specConfig, err := loader.LoadSpec(token)
 		if err != nil {
 			return nil, nil, fmt.Errorf("loading spec file: %w", err)
 		}
+
 		return specConfig, loader, nil
 	}
 
@@ -271,9 +279,12 @@ func loadSpecConfig(cfg Config, token string) (*spec.SpecConfig, source.SourceLo
 		TargetIds:  []string{cfg.SpecFile},
 		Parameters: []spec.ParamSet{},
 	}
+
 	cwd, _ := os.Getwd()
 	loader := &source.LocalLoader{BaseDir: cwd, SpecPath: ""}
+
 	slog.Debug("Running in spec-less mode", "loader", loader)
+
 	return specConfig, loader, nil
 }
 

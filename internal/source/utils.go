@@ -67,7 +67,6 @@ func parseSpec(content []byte) (*spec.SpecConfig, error) {
 	var config spec.SpecConfig
 	err := yaml.Unmarshal(content, &config)
 	if err != nil {
-		slog.Debug("Failed to parse spec YAML", "error", err)
 		return nil, fmt.Errorf("failed to parse spec YAML: %w", err)
 	}
 
@@ -88,8 +87,7 @@ func fetch(url string, token string, isSpec bool) ([]byte, error) {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", transformedURL, nil)
 	if err != nil {
-		slog.Debug("Failed to create HTTP request", "url", transformedURL, "error", err)
-		return nil, fmt.Errorf("failed to create request for %s: %w", transformedURL, err)
+		return nil, fmt.Errorf("failed to create HTTP request for %s: %w", transformedURL, err)
 	}
 
 	if token != "" {
@@ -100,7 +98,6 @@ func fetch(url string, token string, isSpec bool) ([]byte, error) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		slog.Debug("Failed to fetch remote content", "url", transformedURL, "error", err)
 		return nil, fmt.Errorf("failed to fetch remote content from %s: %w", transformedURL, err)
 	}
 	defer func() {
@@ -112,7 +109,6 @@ func fetch(url string, token string, isSpec bool) ([]byte, error) {
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		slog.Debug("Bad response from server", "url", transformedURL, "status", resp.Status)
 		return nil, fmt.Errorf("bad response from server for %s: %s", transformedURL, resp.Status)
 	}
 

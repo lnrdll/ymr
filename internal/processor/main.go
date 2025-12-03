@@ -20,9 +20,9 @@ var simpleTemplateRegex = regexp.MustCompile(`^\s*{{\s*\.([a-zA-Z0-9_.-]+)\s*}}\
 // ProcessContent takes template content and substitutes params.
 func ProcessContent(templateContent []byte, params map[string]any) (string, error) {
 	var rootNode yaml.Node
+
 	err := yaml.Unmarshal(templateContent, &rootNode)
 	if err != nil {
-		slog.Debug("Failed to parse template YAML", "error", err)
 		return "", fmt.Errorf("failed to parse template yaml: %w", err)
 	}
 
@@ -33,7 +33,6 @@ func ProcessContent(templateContent []byte, params map[string]any) (string, erro
 	encoder.SetIndent(2)
 	err = encoder.Encode(&rootNode)
 	if err != nil {
-		slog.Debug("Failed to re-marshal YAML", "error", err)
 		return "", fmt.Errorf("failed to re-marshal yaml: %w", err)
 	}
 
@@ -43,6 +42,7 @@ func ProcessContent(templateContent []byte, params map[string]any) (string, erro
 // traverse recursively visits every node in the YAML tree, handling map keys and values.
 func traverse(node *yaml.Node, params map[string]any) {
 	slog.Debug("Traversing node", "kind", node.Kind, "tag", node.Tag, "value", node.Value)
+
 	switch node.Kind {
 	case yaml.DocumentNode:
 		for _, child := range node.Content {
@@ -126,6 +126,7 @@ func parseParamFromComment(comment string) (directive, paramName string) {
 // updateNodeValue updates a yaml.Node with a new value, handling merge/replace logic.
 func updateNodeValue(node *yaml.Node, newValue any, directive string) {
 	var replacementNode yaml.Node
+
 	err := replacementNode.Encode(newValue)
 	if err != nil {
 		slog.Debug("Failed to encode replacement node", "error", err, "newValue", newValue)

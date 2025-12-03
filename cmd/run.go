@@ -2,9 +2,8 @@ package cmd
 
 import (
 	"log"
-	"log/slog"
-	"os"
 	"ymr/internal/app"
+	"ymr/internal/logger"
 
 	"github.com/spf13/cobra"
 )
@@ -16,18 +15,8 @@ var runCmd = &cobra.Command{
 	Long: `The 'run' command processes YAML templates based on a spec file and
 generates output files. It supports overriding parameters and targets
 via CLI flags.`,
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		var programLevel = slog.LevelWarn
-		if cfg.Debug {
-			programLevel = slog.LevelDebug
-		}
-
-		logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-			Level:     programLevel,
-			AddSource: true,
-		}))
-		slog.SetDefault(logger)
-		return nil
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		logger.Setup(cfg.Debug)
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg.IsSpecFile = cmd.Flags().Changed("spec")

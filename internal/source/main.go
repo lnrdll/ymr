@@ -21,7 +21,7 @@ type SourceLoader interface {
 
 // NewSourceLoader determines the appropriate loader (Local, GitHub, HTTP) based on the provided path.
 func NewSourceLoader(path string, token string) (SourceLoader, error) {
-	slog.Debug("Attempting to create source loader", "path", path)
+	slog.Debug("new source loader", "path", path)
 
 	// GitHub
 	if githubLoader, ok := ParseGitHubURL(path); ok && githubLoader.Ref != "" {
@@ -56,15 +56,12 @@ func NewSourceLoader(path string, token string) (SourceLoader, error) {
 
 		baseURL, err := url.Parse(path)
 		if err != nil {
-			slog.Debug("Invalid HTTP URL", "url", path, "error", err)
-			return nil, fmt.Errorf("invalid http url: %w", err)
+			return nil, fmt.Errorf("invalid HTTP URL: %w", err)
 		}
 		return &HTTPLoader{
 			SpecURL: baseURL,
 		}, nil
 	}
-
-	slog.Debug("Could not determine source type", "path", path)
 
 	return nil, fmt.Errorf("could not determine source type for path: %s", path)
 }
@@ -108,8 +105,6 @@ func LoadTemplate(loader SourceLoader, templatePath string, token string) ([]byt
 		slog.Debug("Fetching remote template content", "finalPath", finalPath)
 		return fetch(finalPath, token, false)
 	}
-
-	slog.Debug("Reading local template content", "finalPath", finalPath)
 
 	return os.ReadFile(finalPath)
 }

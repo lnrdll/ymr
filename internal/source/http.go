@@ -19,7 +19,6 @@ func (h *HTTPLoader) LoadSpec(token string) (*spec.SpecConfig, error) {
 
 	content, err := fetch(h.SpecURL.String(), token, true)
 	if err != nil {
-		slog.Debug("Failed to fetch spec from HTTP", "specURL", h.SpecURL.String(), "error", err)
 		return nil, fmt.Errorf("fetching spec from %s: %w", h.SpecURL.String(), err)
 	}
 	return parseSpec(content)
