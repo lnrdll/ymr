@@ -5,9 +5,9 @@ targetIds:
   - dev
   - prd
 
-validations:
+policies:
   - rule: "params.minScale >= 1"
-    message: "minScale cannot be negative or zero"
+    message: "minScale must be greater than or equal to 1"
     targetId: ["prd"]
 
   - rule: "params.minScale <= params.maxScale"

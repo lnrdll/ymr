@@ -60,9 +60,10 @@ func init() {
 		"Path to a spec file or directory. If used, this flag cannot be empty. (use '.' for current directory)",
 	)
 
-	runCmd.PersistentFlags().StringVar(
+	runCmd.PersistentFlags().StringVarP(
 		&cfg.OverrideTemplate,
 		"template",
+		"T",
 		"",
 		"A single template file/URL. Required in spec-less mode.",
 	)
@@ -98,17 +99,17 @@ func init() {
 		"GitHub token for accessing private repositories (or use GITHUB_TOKEN env var)",
 	)
 
+	runCmd.PersistentFlags().StringVar(
+		&cfg.PolicyFile,
+		"policy",
+		"",
+		"Path to a policy file. If provided, this will override any policies in the spec file.",
+	)
+
 	runCmd.PersistentFlags().BoolVar(
 		&cfg.Debug,
 		"debug",
 		false,
 		"Enable debug logging",
-	)
-
-	runCmd.PersistentFlags().StringVar(
-		&cfg.ValidationFile,
-		"validation",
-		"",
-		"Path to a validation file. If provided, this will override any validations in the spec file.",
 	)
 }

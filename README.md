@@ -56,6 +56,8 @@ In addition, you can pipe the variables to the following functions:
 - `upper`: to set all characters to upper case. Example: `from-param: {{ .var | upper }}`
 - `replace`: to do string substitution. Example: `from-param: {{ .var | replace "." "-" }}`
 
+Policies are also available if there is a need to enforce requirements. The policy engine uses the Common Expression Language ([CEL](https://cel.dev/)) and it validate every parameter passed.
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Spec-less Mode
@@ -63,7 +65,7 @@ In addition, you can pipe the variables to the following functions:
 
 `ymr` can be run **without** a `spec.yaml` file, which is useful for simple, one-off template rendering. In this mode, you must provide:
 
-- A template file/URL via the `--template` (`-t`) flag.
+- A template file/URL via the `--template` (`-T`) flag.
 - At least one parameter via the `--param` (`-p`) flag.
 
 This mode is ideal for CI/CD pipelines or simple scripts where a full `spec.yaml` is unnecessary.
@@ -134,7 +136,7 @@ parameters:
 In addition to the default boilerplate, the `init` command also accepts parameters so the boilerplate can be customized.
 
 ```bash
-ymr init --templates service.yaml -t dev -t stg -p 'maxScale: 10' -p 'minScale: 1'
+ymr init --templates service.yaml --target dev --target stg -p 'maxScale: 10' -p 'minScale: 1'
 ```
 
 <details>
@@ -163,13 +165,11 @@ parameters:
   # --- Specific values for target 'dev' ---
   - targetId: ["dev"]
     values:
-      maxScale: 10
-      minScale: 1
+      foo: bar
   # --- Specific values for target 'stg' ---
   - targetId: ["stg"]
     values:
-      maxScale: 10
-      minScale: 1
+      foo: bar
 ```
 
 </details>
@@ -185,11 +185,13 @@ ymr run [flags]
 **Flags:**
 
 *   `-s`, `--spec <path>`: Source path for the `spec.yaml` (local, dir, file, http url, or github). Defaults to `./spec.yaml`.
-*   `-t`, `--template <path>`: A single template file/URL to override the `templates` list in the spec.
+*   `-T`, `--template <path>`: A single template file/URL to override the `templates` list in the spec.
 *   `-o`, `--output <directory>`: Output directory for rendered files. Use `-` for stdout.
 *   `-p`, `--param <key=value>`: Override a parameter (e.g., `key=value`). Can be used multiple times.
-*   `--target <id>`: Override which targets to render. Can be used multiple times.
+*   `-t`, `--target <id>`: Override which targets to render. Can be used multiple times.
 *   `--token <token>`: GitHub token for accessing private repositories (or use `GITHUB_TOKEN` environment variable).
+*   `--policy <path>`: Path to a policy file. If provided, this will override any validations in the spec file.
+*   `--debug`: Enable debug logging.
 
 **Example `ymr run` usage:**
 
@@ -210,7 +212,7 @@ ymr run -s example/gcp-cloud-run -t prd -o -
 ymr run -s https://github.com/lnrdll/ymr/example/k8s@main -o -
 
 # Run in spec-less mode
-ymr run -t https://github.com/lnrdll/ymr/blob/main/example/k8s/deployment.yaml --target dev -p name=example -o -
+ymr run -T https://github.com/lnrdll/ymr/blob/main/example/k8s/deployment.yaml -t dev -p name=example -o -
 ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>

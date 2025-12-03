@@ -25,11 +25,12 @@ templates:
 {{- range .Templates}}
   - {{.}}
 {{- else}}
-  - base/service.yaml
-  - base/configmap.yaml
+  - service.yaml
 {{- end}}
 
-# A simple list of target environments.
+# A simple list of target environments. Only targets
+# listed here can be referenced in parameters or in
+# policies.
 targetIds:
 {{- range .Targets}}
   - {{.}}
@@ -37,6 +38,12 @@ targetIds:
   - dev
   - prd
 {{- end}}
+
+# Policies are expressed using CEL: https://cel.dev/
+policies:
+  - rule: "params.minScale >= 1"
+    message: "minScale must be greater than or equal to 1"
+    targetId: ["prd"]
 
 # A list of parameter sets.
 parameters:
@@ -59,13 +66,7 @@ parameters:
   # --- Specific values for target '{{.}}' ---
   - targetId: ["{{.}}"]
     values:
-{{- if $.Parameters}}
-{{- range $.Parameters}}
-      {{.}}
-{{- end}}
-{{- else}}
       foo: bar
-{{- end}}
 {{- end}}
 {{- else}}
   # --- Shared values ---

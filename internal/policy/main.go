@@ -1,4 +1,4 @@
-package validate
+package policy
 
 import (
 	"fmt"
@@ -8,10 +8,10 @@ import (
 	"github.com/google/cel-go/cel"
 )
 
-func Check(params map[string]any, validations []spec.Validation) error {
-	slog.Debug("running validations", "params", params, "validations", validations)
+func Check(params map[string]any, policies []spec.Policy) error {
+	slog.Debug("running validations", "params", params, "validations", policies)
 
-	if len(validations) == 0 {
+	if len(policies) == 0 {
 		return nil
 	}
 
@@ -24,7 +24,7 @@ func Check(params map[string]any, validations []spec.Validation) error {
 	}
 
 	// Iterate over rules
-	for _, v := range validations {
+	for _, v := range policies {
 		ast, issues := env.Compile(v.Rule)
 		if issues.Err() != nil {
 			return fmt.Errorf("invalid rule '%s': %w", v.Rule, issues.Err())

@@ -9,10 +9,10 @@ import (
 	"slices"
 	"strings"
 
+	"ymr/internal/policy"
 	"ymr/internal/processor"
 	"ymr/internal/source"
 	"ymr/internal/spec"
-	"ymr/internal/validate"
 )
 
 // Run is the main entrypoint for the application logic.
@@ -43,18 +43,18 @@ func Run(cfg Config) error {
 	// (Override) Targets
 	targetsToRender := filterTargets(specConfig.TargetIds, cfg.OverrideTargets)
 
-	// Load validations
-	validations := specConfig.Validations
-	if cfg.ValidationFile != "" {
+	// Load policies
+	policies := specConfig.Policies
+	if cfg.PolicyFile != "" {
 		var err error
-		validations, err = source.LoadValidations(cfg.ValidationFile, token)
+		policies, err = source.LoadPolicies(cfg.PolicyFile, token)
 		if err != nil {
 			return err
 		}
 	}
 
 	// Validate Rules
-	if err := validateTargets(targetsToRender, paramLookup, paramsOverride, validations); err != nil {
+	if err := validateTargets(targetsToRender, paramLookup, paramsOverride, policies); err != nil {
 		return err
 	}
 
@@ -69,7 +69,7 @@ func validateTargets(
 	targetsToRender []string,
 	paramLookup map[string]map[string]any,
 	paramsOverride map[string]any,
-	validations []spec.Validation,
+	policies []spec.Policy,
 ) error {
 	for _, targetId := range targetsToRender {
 		params, ok := paramLookup[targetId]
@@ -82,19 +82,19 @@ func validateTargets(
 		}
 
 		// Filter validations for the current target
-		targetValidations := []spec.Validation{}
-		for _, v := range validations {
+		targetPolicies := []spec.Policy{}
+		for _, v := range policies {
 			if len(v.TargetId) == 0 {
-				targetValidations = append(targetValidations, v)
+				targetPolicies = append(targetPolicies, v)
 				continue
 			}
 
 			if slices.Contains(v.TargetId, targetId) {
-				targetValidations = append(targetValidations, v)
+				targetPolicies = append(targetPolicies, v)
 			}
 		}
 
-		if err := validate.Check(params, targetValidations); err != nil {
+		if err := policy.Check(params, targetPolicies); err != nil {
 			return fmt.Errorf("validation failed for target '%s': %w", targetId, err)
 		}
 	}
