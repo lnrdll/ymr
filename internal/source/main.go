@@ -109,17 +109,17 @@ func LoadTemplate(loader SourceLoader, templatePath string, token string) ([]byt
 	return os.ReadFile(finalPath)
 }
 
-// LoadPolicies loads a YAML file containing a list of validations.
-func LoadPolicies(filePath string, token string) ([]spec.Policy, error) {
+// LoadValidations loads a YAML file containing a list of validations.
+func LoadValidations(filePath string, token string) ([]spec.Validation, error) {
 	data, err := fetch(filePath, token, false)
 	if err != nil {
 		return nil, fmt.Errorf("reading validation file '%s': %w", filePath, err)
 	}
 
-	var policies []spec.Policy
-	if err := yaml.Unmarshal(data, &policies); err != nil {
+	var validations []spec.Validation
+	if err := yaml.Unmarshal(data, &validations); err != nil {
 		return nil, fmt.Errorf("unmarshaling validation file '%s': %w", filePath, err)
 	}
 
-	return policies, nil
+	return validations, nil
 }

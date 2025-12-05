@@ -89,10 +89,10 @@ func init() {
 	)
 
 	runCmd.PersistentFlags().StringVar(
-		&cfg.PolicyFile,
-		"policy",
+		&cfg.ValidationFile,
+		"validation",
 		"",
-		"Path to a policy file. If provided, this will override any policies in the spec file.",
+		"Path to a validation file. If provided, this will override any validations in the spec file.",
 	)
 
 	runCmd.PersistentFlags().BoolVar(

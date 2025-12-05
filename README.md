@@ -56,7 +56,7 @@ In addition, you can pipe the variables to the following functions:
 - `upper`: to set all characters to upper case. Example: `from-param: {{ .var | upper }}`
 - `replace`: to do string substitution. Example: `from-param: {{ .var | replace "." "-" }}`
 
-Policies are also available if there is a need to enforce requirements. The policy engine uses the Common Expression Language ([CEL](https://cel.dev/)) and it validate every parameter passed.
+Validations are also available if there is a need to enforce requirements. The policy engine uses the Common Expression Language ([CEL](https://cel.dev/)) and it validates every parameter passed.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -190,7 +190,7 @@ ymr run [flags]
 *   `-p`, `--param <key=value>`: Override a parameter (e.g., `key=value`). Can be used multiple times.
 *   `-t`, `--target <id>`: Override which targets to render. Can be used multiple times.
 *   `--token <token>`: GitHub token for accessing private repositories (or use `GITHUB_TOKEN` environment variable).
-*   `--policy <path>`: Path to a policy file. If provided, this will override any validations in the spec file.
+*   `--validation <path>`: Path to a policy file. If provided, this will override any validations in the spec file.
 *   `--debug`: Enable debug logging.
 
 **Example `ymr run` usage:**

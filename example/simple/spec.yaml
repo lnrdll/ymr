@@ -5,7 +5,7 @@ targetIds:
   - dev
   - prd
 
-policies:
+validations:
   - rule: "params.minScale >= 1"
     message: "minScale must be greater than or equal to 1"
     targetId: ["prd"]
@@ -17,7 +17,7 @@ policies:
 parameters:
   # --- Shared values ---
   - targetId: ["dev", "prd"] # Which targets this value set applies to
-    values:
+  - values:
       version: 1.1.1
       name: "myapp-name"
 

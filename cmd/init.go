@@ -30,7 +30,7 @@ templates:
 
 # A simple list of target environments. Only targets
 # listed here can be referenced in parameters or in
-# policies.
+# validations.
 targetIds:
 {{- range .Targets}}
   - {{.}}
@@ -39,8 +39,8 @@ targetIds:
   - prd
 {{- end}}
 
-# Policies are expressed using CEL: https://cel.dev/
-policies:
+# Validations are expressed using CEL: https://cel.dev/
+validations:
   - rule: "params.minScale >= 1"
     message: "minScale must be greater than or equal to 1"
     targetId: ["prd"]

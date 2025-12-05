@@ -9,10 +9,10 @@ import (
 	"slices"
 	"strings"
 
-	"ymr/internal/policy"
 	"ymr/internal/processor"
 	"ymr/internal/source"
 	"ymr/internal/spec"
+	"ymr/internal/validation"
 )
 
 // Run is the main entrypoint for the application logic.
@@ -43,18 +43,18 @@ func Run(cfg Config) error {
 	// (Override) Targets
 	targetsToRender := filterTargets(specConfig.TargetIds, cfg.OverrideTargets)
 
-	// Load policies
-	policies := specConfig.Policies
-	if cfg.PolicyFile != "" {
+	// Load validations
+	validations := specConfig.Validations
+	if cfg.ValidationFile != "" {
 		var err error
-		policies, err = source.LoadPolicies(cfg.PolicyFile, token)
+		validations, err = source.LoadValidations(cfg.ValidationFile, token)
 		if err != nil {
 			return err
 		}
 	}
 
 	// Validate Rules
-	if err := validatePolicyTargets(targetsToRender, paramLookup, paramsOverride, policies); err != nil {
+	if err := validateTargets(targetsToRender, paramLookup, paramsOverride, validations); err != nil {
 		return err
 	}
 
@@ -65,11 +65,11 @@ func Run(cfg Config) error {
 	return handleOutput(allOutputs, terminalOutput, outputDir)
 }
 
-func validatePolicyTargets(
+func validateTargets(
 	targetsToRender []string,
 	paramLookup map[string]map[string]any,
 	paramsOverride map[string]any,
-	policies []spec.Policy,
+	validations []spec.Validation,
 ) error {
 	for _, targetId := range targetsToRender {
 		params, ok := paramLookup[targetId]
@@ -81,21 +81,21 @@ func validatePolicyTargets(
 			applyParamsOverride(params, paramsOverride)
 		}
 
-		// Filter policies for the current target
-		targetPolicies := []spec.Policy{}
-		for _, v := range policies {
+		// Filter validations for the current target
+		targetValidations := []spec.Validation{}
+		for _, v := range validations {
 			if len(v.TargetId) == 0 {
-				targetPolicies = append(targetPolicies, v)
+				targetValidations = append(targetValidations, v)
 				continue
 			}
 
 			if slices.Contains(v.TargetId, targetId) {
-				targetPolicies = append(targetPolicies, v)
+				targetValidations = append(targetValidations, v)
 			}
 		}
 
-		if err := policy.Check(params, targetPolicies); err != nil {
-			return fmt.Errorf("policy failed for target '%s': %w", targetId, err)
+		if err := validation.Check(params, targetValidations); err != nil {
+			return fmt.Errorf("validation failed for target '%s': %w", targetId, err)
 		}
 	}
 
