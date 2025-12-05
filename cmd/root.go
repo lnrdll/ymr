@@ -13,13 +13,11 @@ var rootCmd = &cobra.Command{
 	Use:   "ymr [command]",
 	Short: "A flexible, spec-driven YAML templating tool.",
 	Long: `
-██╗   ██╗███╗   ███╗██████╗ 
-╚██╗ ██╔╝████╗ ████║██╔══██╗
- ╚████╔╝ ██╔████╔██║██████╔╝
-  ╚██╔╝  ██║╚██╔╝██║██╔══██╗
-   ██║   ██║ ╚═╝ ██║██║  ██║
-   ╚═╝   ╚═╝     ╚═╝╚═╝  ╚═╝ (ya·mr)
-
+	    ██ ██ ███▄███▄ ████▄ 
+	    ██▄██ ██ ██ ██ ██ ▀▀ 
+	     ▀██▀ ██ ██ ██ ██    (ya·mr)
+	      ██
+	    ▀▀▀
 'ymr' is a lightweight, spec-driven YAML template tool.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		_ = cmd.Help()
