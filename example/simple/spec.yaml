@@ -6,8 +6,8 @@ targetIds:
   - prd
 
 validations:
-  - rule: "params.minScale >= 1"
-    message: "minScale must be greater than or equal to 1"
+  - rule: "params.minScale >= 2"
+    message: "minScale must be greater than or equal to 2"
     targetId: ["prd"]
 
   - rule: "params.minScale <= params.maxScale"

@@ -77,25 +77,27 @@ func validateTargets(
 			params = make(map[string]any)
 		}
 
-		if len(paramsOverride) > 0 && !ok {
+		if len(paramsOverride) > 0 {
 			applyParamsOverride(params, paramsOverride)
 		}
 
-		// Filter validations for the current target
-		targetValidations := []spec.Validation{}
+		// Explicit Filtering: Only include validations where targetId is
+		// explicitly listed. If v.TargetId is empty, it is ignored.
+		var targetValidations []spec.Validation
 		for _, v := range validations {
-			if len(v.TargetId) == 0 {
-				targetValidations = append(targetValidations, v)
-				continue
-			}
-
-			if slices.Contains(v.TargetId, targetId) {
+			if len(v.TargetId) > 0 && slices.Contains(v.TargetId, targetId) {
 				targetValidations = append(targetValidations, v)
 			}
 		}
 
-		if err := validation.Check(params, targetValidations); err != nil {
-			return fmt.Errorf("validation failed for target '%s': %w", targetId, err)
+		// Only run validation engine if there are applicable rules
+		if len(targetValidations) > 0 {
+			slog.Debug("Running validations", "target", targetId, "count", len(targetValidations))
+			if err := validation.Check(params, targetValidations); err != nil {
+				return fmt.Errorf("validation failed for target '%s': %w", targetId, err)
+			}
+		} else {
+			slog.Debug("No explicit validations found for target", "target", targetId)
 		}
 	}
 
@@ -169,28 +171,25 @@ func applyParamsOverrides(
 	return paramsOverride, nil
 }
 
-// filterTargets filters the targets to be rendered based on the provided override targets.
+// filterTargets now performs strict explicit matching.
+// If overrideTargets is provided, only targets existing in BOTH slices are returned.
 func filterTargets(specTargetIds []string, overrideTargets []string) []string {
 	if len(overrideTargets) == 0 {
-		slog.Debug("Rendering all targets", "count", len(specTargetIds))
+		slog.Debug("Rendering all targets", "count", len(overrideTargets))
 		return specTargetIds
 	}
 
-	filteredTargets := make([]string, 0)
-	cliTargetSet := make(map[string]bool)
-
+	filtered := make([]string, 0)
 	for _, t := range overrideTargets {
-		cliTargetSet[t] = true
-	}
-
-	for _, specTargetId := range specTargetIds {
-		if _, ok := cliTargetSet[specTargetId]; ok {
-			filteredTargets = append(filteredTargets, specTargetId)
+		if slices.Contains(specTargetIds, t) {
+			filtered = append(filtered, t)
+		} else {
+			slog.Warn("Requested target not found in spec", "targetId", t)
 		}
 	}
 
-	slog.Debug("Rendering specific targets", "targets", filteredTargets)
-	return filteredTargets
+	slog.Debug("Rendering specific targets", "targets", filtered)
+	return filtered
 }
 
 // processTemplates processes each template against each target and returns the rendered outputs.
