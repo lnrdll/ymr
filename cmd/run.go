@@ -54,7 +54,7 @@ func init() {
 		"template",
 		"T",
 		"",
-		"A single template file/URL. Required in spec-less mode.",
+		"A single template file/URL. Required in spec-less mode",
 	)
 
 	runCmd.PersistentFlags().StringVarP(
@@ -62,7 +62,7 @@ func init() {
 		"output",
 		"o",
 		"",
-		"Output directory for rendered files. (use '-' for stdout)",
+		"Output directory for rendered files (use '-' for stdout)",
 	)
 
 	runCmd.PersistentFlags().StringSliceVarP(
@@ -70,7 +70,7 @@ func init() {
 		"param",
 		"p",
 		nil,
-		"Override a parameter (key=value). Can be used multiple times.",
+		"Override a parameter (key=value). Can be used multiple times",
 	)
 
 	runCmd.PersistentFlags().StringSliceVarP(
@@ -78,7 +78,7 @@ func init() {
 		"target",
 		"t",
 		nil,
-		"Override which targets to render. Can be used multiple times.",
+		"Override which targets to render. Can be used multiple times",
 	)
 
 	runCmd.PersistentFlags().StringVar(
@@ -92,12 +92,13 @@ func init() {
 		&cfg.ValidationFile,
 		"validation",
 		"",
-		"Path to a validation file. If provided, this will override any validations in the spec file.",
+		"Path to a validation file. If provided, this will override any validations in the spec file",
 	)
 
-	runCmd.PersistentFlags().BoolVar(
+	runCmd.PersistentFlags().BoolVarP(
 		&cfg.Debug,
 		"debug",
+		"d",
 		false,
 		"Enable debug logging",
 	)
