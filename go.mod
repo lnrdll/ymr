@@ -1,4 +1,4 @@
-module ymr
+module github.com/lnrdll/ymr
 
 go 1.25.3
 

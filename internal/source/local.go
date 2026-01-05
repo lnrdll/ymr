@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"ymr/internal/spec"
+
+	"github.com/lnrdll/ymr/internal/spec"
 )
 
 // LocalLoader handles loading from the local filesystem.

@@ -2,7 +2,8 @@ package cmd
 
 import (
 	"os"
-	"ymr/internal/app"
+
+	"github.com/lnrdll/ymr/internal/app"
 
 	"github.com/spf13/cobra"
 )

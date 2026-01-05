@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"log/slog"
 	"path"
-	"ymr/internal/spec"
+
+	"github.com/lnrdll/ymr/internal/spec"
 )
 
 type GithubLoader struct {

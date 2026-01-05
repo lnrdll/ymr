@@ -9,10 +9,10 @@ import (
 	"slices"
 	"strings"
 
-	"ymr/internal/processor"
-	"ymr/internal/source"
-	"ymr/internal/spec"
-	"ymr/internal/validation"
+	"github.com/lnrdll/ymr/internal/processor"
+	"github.com/lnrdll/ymr/internal/source"
+	"github.com/lnrdll/ymr/internal/spec"
+	"github.com/lnrdll/ymr/internal/validation"
 )
 
 // Run is the main entrypoint for the application logic.

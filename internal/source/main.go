@@ -6,7 +6,8 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"ymr/internal/spec"
+
+	"github.com/lnrdll/ymr/internal/spec"
 
 	"gopkg.in/yaml.v3"
 )

@@ -3,7 +3,8 @@ package validation
 import (
 	"fmt"
 	"log/slog"
-	"ymr/internal/spec"
+
+	"github.com/lnrdll/ymr/internal/spec"
 
 	"github.com/google/cel-go/cel"
 )

@@ -1,6 +1,6 @@
 package main
 
-import "ymr/cmd"
+import "github.com/lnrdll/ymr/cmd"
 
 func main() {
 	cmd.Execute()

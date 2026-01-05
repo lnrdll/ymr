@@ -2,8 +2,9 @@ package cmd
 
 import (
 	"log"
-	"ymr/internal/app"
-	"ymr/internal/logger"
+
+	"github.com/lnrdll/ymr/internal/app"
+	"github.com/lnrdll/ymr/internal/logger"
 
 	"github.com/spf13/cobra"
 )

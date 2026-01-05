@@ -5,7 +5,8 @@ import (
 	"log/slog"
 	"net/url"
 	"path"
-	"ymr/internal/spec"
+
+	"github.com/lnrdll/ymr/internal/spec"
 )
 
 // HTTPLoader handles loading from a direct http(s) URL.

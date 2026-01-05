@@ -6,7 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 	"regexp"
-	"ymr/internal/spec"
+
+	"github.com/lnrdll/ymr/internal/spec"
 
 	"gopkg.in/yaml.v3"
 )
