@@ -10,23 +10,23 @@ on:
     types: [published]
 
 jobs:
-  # lint-and-test:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: actions/setup-go@v6
-  #       with:
-  #         go-version: "1.25"
-  #     - name: Run tests
-  #       run: go test ./...
-  #     - name: Run golangci-lint
-  #       uses: golangci/golangci-lint-action@v6
-  #       with:
-  #         version: latest
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.25"
+      - name: Run tests
+        run: go test ./...
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
 
   release-builds:
     if: github.event_name == 'release'
-    # needs: lint-and-test
+    needs: lint-and-test
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -70,7 +70,8 @@ jobs:
           fi
 
           echo "Building version $VERSION"
-          GOOS="$GOOS" GOARCH="$GOARCH" go build -ldflags "$LDFLAGS" -o "$output" ./cmd         sha256sum "$output" | awk '{print $1}' > "${output}.sha256"
+          GOOS="$GOOS" GOARCH="$GOARCH" go build -ldflags "$LDFLAGS" -o "$output" ./cmd
+          sha256sum "$output" | awk '{print $1}' > "${output}.sha256"
       - name: Upload release artifacts
         uses: softprops/action-gh-release@v1
         with:
