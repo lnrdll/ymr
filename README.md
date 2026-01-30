@@ -75,9 +75,19 @@ This mode is ideal for CI/CD pipelines or simple scripts where a full `spec.yaml
 ### Installation
 <a name="installation"></a>
 
+#### `go install`
+
 You can install `ymr` using `go install`:
 ```bash
 go install github.com/lnrdll/ymr@latest
+```
+
+#### `Mise`
+
+You can install 'ymr' using `Mise`:
+```bash
+[tools]
+"github:lnrdll/ymr" = "latest"
 ```
 
 Alternatively, you can download the binary from the [releases page](https://github.com/lnrdll/ymr/releases).
