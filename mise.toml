@@ -1,5 +1,86 @@
-[tools]
-golang = "1.25"
+# MISE will automatically set the Terraform
+# version once inside the repository tree
+# https://gfiber.atlassian.net/wiki/x/AQBMDg
+
+############################################
+#
+# Hooks
+#
+############################################
+
+[settings]
+quiet = true
+
+############################################
+#
+# Hooks
+#
+############################################
 
 [hooks]
 enter = "mise install"
+
+############################################
+#
+# Tools
+#
+############################################
+
+[tools]
+golang = "1.25"
+golangci-lint = "latest"
+
+############################################
+#
+# Tasks
+#
+############################################
+
+[tasks.init]
+description = "Init"
+alias = "i"
+dir = "{{ config_root }}/cmd"
+run = '''
+go mod init github.com/lnrdll/ymr
+go mod tidy
+'''
+
+[tasks.clean]
+description = "Clean modules"
+alias = "c"
+dir = "{{ config_root }}/cmd"
+run = "go clean -modcache"
+
+[tasks.update]
+description = "Update all modules"
+alias = "u"
+dir = "{{ config_root }}/cmd"
+run = '''
+go get -u -t ./...
+go mod tidy
+'''
+
+[tasks.run]
+description = "Run application locally"
+alias = "r"
+dir = "{{ config_root }}/cmd"
+run = "go run main.go"
+
+[tasks.lint]
+description = "Go Lint"
+alias = "l"
+dir = "{{ config_root }}/cmd"
+run = "golangci-lint run -v"
+
+[tasks.test]
+description = "Run unit tests"
+alias = "t"
+run = "go test -v -cover ./..."
+
+[tasks.check]
+description = "Run lint + tests"
+alias = "ck"
+run = [
+  { task = "lint" },
+  { task = "test" }
+]
