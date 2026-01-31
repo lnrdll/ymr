@@ -1,7 +1,3 @@
-# MISE will automatically set the Terraform
-# version once inside the repository tree
-# https://gfiber.atlassian.net/wiki/x/AQBMDg
-
 ############################################
 #
 # Hooks
