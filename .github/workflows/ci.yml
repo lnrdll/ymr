@@ -49,7 +49,7 @@ jobs:
             arm64) goarch_label="arm64" ;;
             *) goarch_label="$GOARCH" ;;
           esac
-          output="dist/resterm_${goos_label}_${goarch_label}"
+          output="dist/ymr_${goos_label}_${goarch_label}"
           if [ "$GOOS" = "windows" ]; then
             output="${output}.exe"
           fi
