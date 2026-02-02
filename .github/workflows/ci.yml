@@ -69,6 +69,7 @@ jobs:
           base="ymr_${goos_label}_${goarch_label}"
 
           # Package so the file inside is always ymr / ymr.exe
+          output="dist/ymr_${goos_label}_${goarch_label}"
           if [ "$GOOS" = "windows" ]; then
             (cd "$tmpdir" && zip -q "../dist/${base}.zip" "$bin_name")
             sha256sum "dist/${base}.zip" | awk '{print $1}' > "dist/${base}.zip.sha256"
