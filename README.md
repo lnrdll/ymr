@@ -92,6 +92,21 @@ You can install 'ymr' using `Mise`:
 
 Alternatively, you can download the binary from the [releases page](https://github.com/lnrdll/ymr/releases).
 
+#### Build from source
+
+Build for your current platform:
+```bash
+mkdir -p dist
+go build -trimpath -o dist/ymr .
+```
+
+Build release-style artifacts for linux/windows/darwin on amd64 and arm64:
+```bash
+bash scripts/build-all.sh
+```
+
+Artifacts are written to `dist/`.
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Usage
