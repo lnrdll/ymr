@@ -21,8 +21,10 @@
 **TOC**
 - [Why?](#why)
 - [How it Works](#how-it-works)
+- [Agent Notes](#agent-notes)
 - [Spec-less Mode](#spec-less-mode)
 - [Installation](#installation)
+- [Development](#development)
 - [Usage](#usage)
 - [Template Syntax](#template-syntax)
 - [Examples](#examples)
@@ -60,10 +62,20 @@ Validations are also available if there is a need to enforce requirements. The p
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+### Agent Notes
+<a name="agent-notes"></a>
+
+If you're using `ymr` from an AI agent / coding assistant, read these first:
+
+- `AGENTS.md`: repo map, architecture, invariants, and quick commands
+- `SKILL.md`: agent-oriented usage rules and reliable invocation patterns
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 ### Spec-less Mode
 <a name="spec-less-mode"></a>
 
-`ymr` can be run **without** a `spec.yaml` file, which is useful for simple, one-off template rendering. In this mode, you must provide:
+`ymr` can be run **without** a `--spec` (`-s`) flag (spec-less mode), which is useful for simple, one-off template rendering. In this mode, you must provide:
 
 - A template file/URL via the `--template` (`-T`) flag.
 - At least one parameter via the `--param` (`-p`) flag.
@@ -109,10 +121,29 @@ Artifacts are written to `dist/`.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+### Development
+<a name="development"></a>
+
+Useful commands when working on `ymr` itself:
+
+```bash
+go test ./...
+
+go build -trimpath -o dist/ymr .
+
+# If you use mise (optional)
+mise run test
+mise run lint
+```
+
+Note: `mise` task definitions live in `mise.toml`.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 ### Usage
 <a name="usage"></a>
 
-`ymr` provides two main commands: `init` and `run`.
+`ymr` provides three commands: `init`, `run`, and `version`.
 
 #### `ymr init`
 
@@ -209,7 +240,7 @@ ymr run [flags]
 
 **Flags:**
 
-*   `-s`, `--spec <path>`: Source path for the `spec.yaml` (local, dir, file, http url, or github). Defaults to `./spec.yaml`.
+*   `-s`, `--spec <path>`: Source path for `spec.yaml` (local dir/file, http(s) URL, or GitHub). When omitted, `ymr` runs in spec-less mode.
 *   `-T`, `--template <path>`: A single template file/URL to override the `templates` list in the spec.
 *   `-o`, `--output <directory>`: Output directory for rendered files. Use `-` for stdout.
 *   `-p`, `--param <key=value>`: Override a parameter (e.g., `key=value`). Can be used multiple times.
@@ -221,7 +252,7 @@ ymr run [flags]
 **Example `ymr run` usage:**
 
 ```bash
-# Specless mode
+# Spec-less mode
 ymr run --template ./example/gcp-cloud-run/service.yaml -p version=111 -o -
 
 # Process spec.yaml and output to the 'rendered' directory
@@ -233,14 +264,24 @@ ymr run -s example/gcp-cloud-run -p minScale=5 -o -
 # Render only the 'prd' target
 ymr run -s example/gcp-cloud-run -t prd -o -
 
-# Use a GitHub repo directly (requires --token or GITHUB_TOEKN env for private repos)
+# Use a GitHub repo directly (requires --token or GITHUB_TOKEN env for private repos)
 ymr run -s https://github.com/lnrdll/ymr/example/k8s@main -o -
 
 # Run in spec-less mode
 ymr run -T https://github.com/lnrdll/ymr/blob/main/example/k8s/deployment.yaml -t dev -p name=example -o -
 ```
 
+Note: In spec-less mode, if you write to files (i.e. `-o rendered/`), you typically want to pass at least one `--target` so output filenames are stable.
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+#### `ymr version`
+
+Print the current version (and commit/date when available):
+
+```bash
+ymr version
+```
 
 ### Template Syntax
 <a name="template-syntax"></a>
