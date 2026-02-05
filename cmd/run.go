@@ -26,7 +26,7 @@ via CLI flags.`,
 			// Spec-less mode
 			cfg.SpecFile = ""
 			if cfg.OverrideTemplate == "" {
-				log.Fatalf("\nError: in spec-less mode (no -s flag), --template (-t) is required.\n")
+				log.Fatalf("\nError: in spec-less mode (no -s flag), --template (-T) is required.\n")
 			}
 			if len(cfg.OverrideParams) == 0 {
 				log.Fatalf("\nError: in spec-less mode (no -s flag), at least one --param is required.\n")
