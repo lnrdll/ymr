@@ -28,55 +28,10 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
+          VERSION: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          mkdir -p dist
-
-          VERSION="${GITHUB_REF_NAME}"
-          COMMIT="${GITHUB_SHA::7}"
-          DATE="$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-
-          LDFLAGS="-s -w -X 'main.version=${VERSION}' -X 'main.commit=${COMMIT}' -X 'main.date=${DATE}'"
-
-          case "$GOOS" in
-            darwin) goos_label="Darwin" ;;
-            linux) goos_label="Linux" ;;
-            windows) goos_label="Windows" ;;
-            *) goos_label="$GOOS" ;;
-          esac
-          case "$GOARCH" in
-            amd64) goarch_label="x86_64" ;;
-            arm64) goarch_label="arm64" ;;
-            *) goarch_label="$GOARCH" ;;
-          esac
-
-          # Build output names
-          bin_name="ymr"
-          if [ "$GOOS" = "windows" ]; then
-            bin_name="ymr.exe"
-          fi
-
-          tmpdir="$(mktemp -d)"
-          trap 'rm -rf "$tmpdir"' EXIT
-
-          echo "Building version $VERSION for $GOOS/$GOARCH"
-          GOOS="$GOOS" GOARCH="$GOARCH" go build \
-            -trimpath \
-            -ldflags "$LDFLAGS" \
-            -o "$tmpdir/$bin_name" \
-            ./cmd
-
-          base="ymr_${goos_label}_${goarch_label}"
-
-          # Package so the file inside is always ymr / ymr.exe
-          output="dist/ymr_${goos_label}_${goarch_label}"
-          if [ "$GOOS" = "windows" ]; then
-            (cd "$tmpdir" && zip -q "../dist/${base}.zip" "$bin_name")
-            sha256sum "dist/${base}.zip" | awk '{print $1}' > "dist/${base}.zip.sha256"
-          else
-            (cd "$tmpdir" && tar -czf "../dist/${base}.tar.gz" "$bin_name")
-            sha256sum "dist/${base}.tar.gz" | awk '{print $1}' > "dist/${base}.tar.gz.sha256"
-          fi
+          bash scripts/build-artifact.sh
 
       - name: Upload release artifacts
         uses: softprops/action-gh-release@v1
