@@ -143,7 +143,7 @@ Note: `mise` task definitions live in `mise.toml`.
 ### Usage
 <a name="usage"></a>
 
-`ymr` provides three commands: `init`, `run`, and `version`.
+`ymr` provides four commands: `init`, `run`, `validate`, and `version`.
 
 #### `ymr init`
 
@@ -279,6 +279,20 @@ ymr run -T ./example/k8s/deployment.yaml -t dev -p name=example --strict -o -
 ```
 
 Note: In spec-less mode, if you write to files (i.e. `-o rendered/`), you typically want to pass at least one `--target` so output filenames are stable.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+#### `ymr validate`
+
+Validates a spec (or a single template in spec-less mode) without writing output files.
+
+```bash
+# Validate a spec directory
+ymr validate -s example/k8s
+
+# Validate with strict mode (fail on any template load/parse error)
+ymr validate -s example/k8s --strict
+```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
