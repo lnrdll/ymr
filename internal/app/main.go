@@ -60,7 +60,19 @@ func Run(cfg Config) error {
 	}
 
 	// Process each template against each target
-	allOutputs := processTemplates(specConfig, loader, token, targetsToRender, paramLookup, paramsOverride, cfg.OverrideTemplate)
+	allOutputs, renderErr := processTemplates(
+		specConfig,
+		loader,
+		token,
+		targetsToRender,
+		paramLookup,
+		paramsOverride,
+		cfg.OverrideTemplate,
+		cfg.Strict,
+	)
+	if cfg.Strict && renderErr != nil {
+		return renderErr
+	}
 
 	// Handle Output
 	return handleOutput(allOutputs, terminalOutput, outputDir)
@@ -217,8 +229,10 @@ func processTemplates(
 	paramLookup map[string]map[string]any,
 	paramsOverride map[string]any,
 	overrideTemplate string,
-) []processor.RenderedOutput {
+	strict bool,
+) ([]processor.RenderedOutput, error) {
 	allOutputs := []processor.RenderedOutput{}
+	var renderErrs []error
 
 	for _, templatePath := range specConfig.Templates {
 		var templateContent []byte
@@ -232,6 +246,9 @@ func processTemplates(
 
 		templateContent, err = source.LoadTemplate(loaderToUse, templatePath, token)
 		if err != nil {
+			if strict {
+				renderErrs = append(renderErrs, fmt.Errorf("loading template '%s': %w", templatePath, err))
+			}
 			slog.Debug(fmt.Sprintf("Skipping template '%s' due to error: %v", templatePath, err))
 			continue
 		}
@@ -252,6 +269,9 @@ func processTemplates(
 
 			renderedYaml, err := processor.ProcessContent(templateContent, params)
 			if err != nil {
+				if strict {
+					renderErrs = append(renderErrs, fmt.Errorf("processing template '%s' for target '%s': %w", templatePath, targetId, err))
+				}
 				slog.Debug(fmt.Sprintf("Skipping template '%s' for target '%s' due to error: %v", templatePath, targetId, err))
 				continue
 			}
@@ -266,7 +286,10 @@ func processTemplates(
 		}
 	}
 
-	return allOutputs
+	if strict && len(renderErrs) > 0 {
+		return allOutputs, errors.Join(renderErrs...)
+	}
+	return allOutputs, nil
 }
 
 // loadSpecConfig loads the specification configuration based on the provided application config.

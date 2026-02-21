@@ -103,4 +103,11 @@ func init() {
 		false,
 		"Enable debug logging",
 	)
+
+	runCmd.PersistentFlags().BoolVar(
+		&cfg.Strict,
+		"strict",
+		false,
+		"Fail if any template/target render step errors",
+	)
 }

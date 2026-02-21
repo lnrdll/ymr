@@ -247,6 +247,7 @@ ymr run [flags]
 *   `-t`, `--target <id>`: Override which targets to render. Can be used multiple times.
 *   `--token <token>`: GitHub token for accessing private repositories (or use `GITHUB_TOKEN` environment variable).
 *   `--validation <path>`: Path to a policy file. If provided, this will override any validations in the spec file.
+*   `--strict`: Fail the run if any template/target render step errors. By default, `ymr` runs in best-effort mode and skips failed templates/targets.
 *   `--debug`: Enable debug logging.
 
 **Example `ymr run` usage:**
@@ -254,6 +255,9 @@ ymr run [flags]
 ```bash
 # Spec-less mode
 ymr run --template ./example/gcp-cloud-run/service.yaml -p version=111 -o -
+
+# Strict mode (fail on any render error)
+ymr run -s example/k8s --strict -o -
 
 # Process spec.yaml and output to the 'rendered' directory
 ymr run -s spec.yaml -o rendered
@@ -269,6 +273,9 @@ ymr run -s https://github.com/lnrdll/ymr/example/k8s@main -o -
 
 # Run in spec-less mode
 ymr run -T https://github.com/lnrdll/ymr/blob/main/example/k8s/deployment.yaml -t dev -p name=example -o -
+
+# Run in spec-less strict mode
+ymr run -T ./example/k8s/deployment.yaml -t dev -p name=example --strict -o -
 ```
 
 Note: In spec-less mode, if you write to files (i.e. `-o rendered/`), you typically want to pass at least one `--target` so output filenames are stable.
