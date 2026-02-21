@@ -104,3 +104,29 @@ validations: []
 		t.Fatalf("expected strict error")
 	}
 }
+
+func TestValidate_SpecLess_ParamYAML_SupportsMaps(t *testing.T) {
+	t.Parallel()
+
+	workDir := t.TempDir()
+	templatePath := filepath.Join(workDir, "t.yaml")
+
+	err := os.WriteFile(templatePath, []byte(strings.TrimSpace(`
+labels: # from-param: {{ .labels }}
+  foo: bar
+`)+"\n"), 0644)
+	if err != nil {
+		t.Fatalf("write template: %v", err)
+	}
+
+	cfg := Config{
+		IsSpecFile:        false,
+		OverrideTemplate:  templatePath,
+		OverrideParamYAML: []string{"labels: { env: dev }"},
+		OverrideTargets:   []string{"dev"},
+		Strict:            true,
+	}
+	if err := Validate(cfg); err != nil {
+		t.Fatalf("Validate: %v", err)
+	}
+}

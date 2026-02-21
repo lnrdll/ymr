@@ -28,6 +28,9 @@ It does not write rendered output files.`,
 			if cfg.OverrideTemplate == "" {
 				log.Fatalf("\nError: in spec-less mode (no -s flag), --template (-T) is required.\n")
 			}
+			if len(cfg.OverrideParams) == 0 && len(cfg.OverrideParamFiles) == 0 && len(cfg.OverrideParamYAML) == 0 {
+				log.Fatalf("\nError: in spec-less mode (no -s flag), at least one of --param, --param-file, or --param-yaml is required.\n")
+			}
 		}
 
 		if err := app.Validate(cfg); err != nil {
@@ -61,6 +64,20 @@ func init() {
 		"p",
 		nil,
 		"Override a parameter (key=value). Can be used multiple times",
+	)
+
+	validateCmd.PersistentFlags().StringSliceVar(
+		&cfg.OverrideParamYAML,
+		"param-yaml",
+		nil,
+		"Override parameters from an inline YAML/JSON mapping. Can be used multiple times",
+	)
+
+	validateCmd.PersistentFlags().StringSliceVar(
+		&cfg.OverrideParamFiles,
+		"param-file",
+		nil,
+		"Override parameters from a YAML/JSON file/URL. Can be used multiple times",
 	)
 
 	validateCmd.PersistentFlags().StringSliceVarP(

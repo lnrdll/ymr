@@ -43,12 +43,19 @@ Requirements:
 
 - `--template` (`-T`) is required
 - at least one `--param` (`-p`) is required
+ - at least one of `--param` (`-p`), `--param-file`, or `--param-yaml` is required
 
 Examples:
 
 ```bash
 # Print rendered content to stdout
 ymr run -T ./example/k8s/deployment.yaml -p name=myapp -o -
+
+# Load a YAML params mapping from a file
+ymr run -T ./example/k8s/deployment.yaml -t dev --param-file ./params.yaml -o -
+
+# Inline YAML/JSON mapping
+ymr run -T ./example/k8s/deployment.yaml -t dev --param-yaml 'labels: { env: dev }' -o -
 
 # Write to files; pass a target label for stable filenames
 ymr run -T ./example/k8s/deployment.yaml -t dev -p name=myapp -o rendered
@@ -67,6 +74,8 @@ When writing to files:
 
 - Spec mode parameters come from `spec.yaml` (`parameters[].values`) merged by `targetId`.
 - `--param key=value` overrides parameters for the current run.
+- `--param-file <path|url>` merges in a YAML/JSON mapping (can be repeated).
+- `--param-yaml <yaml>` merges in an inline YAML/JSON mapping (can be repeated).
 - Type inference for CLI params: ints and bools are parsed; otherwise values are strings.
 
 ## Validation Rules

@@ -86,3 +86,64 @@ validations: []
 		t.Fatalf("expected strict run to fail")
 	}
 }
+
+func TestRun_SpecLess_ParamFile_SupportsMapsAndLists(t *testing.T) {
+	t.Parallel()
+
+	workDir := t.TempDir()
+	templatePath := filepath.Join(workDir, "t.yaml")
+	paramsPath := filepath.Join(workDir, "params.yaml")
+	outDir := filepath.Join(workDir, "out")
+
+	err := os.WriteFile(templatePath, []byte(strings.TrimSpace(`
+metadata:
+  name: default # from-param: {{ .name }}
+  labels: # from-param: {{ .labels }}
+    foo: bar
+spec:
+  ports: [1] # from-param: {{ .ports }}
+`)+"\n"), 0644)
+	if err != nil {
+		t.Fatalf("write template: %v", err)
+	}
+
+	err = os.WriteFile(paramsPath, []byte(strings.TrimSpace(`
+name: myapp
+labels:
+  env: dev
+ports:
+  - 80
+  - 443
+`)+"\n"), 0644)
+	if err != nil {
+		t.Fatalf("write params: %v", err)
+	}
+
+	cfg := Config{
+		IsSpecFile:         false,
+		OverrideTemplate:   templatePath,
+		OverrideParamFiles: []string{paramsPath},
+		OverrideTargets:    []string{"dev"},
+		OutputDir:          outDir,
+	}
+
+	if err := Run(cfg); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	outFile := filepath.Join(outDir, "dev-t.yaml")
+	b, err := os.ReadFile(outFile)
+	if err != nil {
+		t.Fatalf("read output %s: %v", outFile, err)
+	}
+	out := string(b)
+	if !strings.Contains(out, "name: myapp") {
+		t.Fatalf("expected name override; got:\n%s", out)
+	}
+	if !strings.Contains(out, "env: dev") {
+		t.Fatalf("expected labels map override; got:\n%s", out)
+	}
+	if !strings.Contains(out, "80") || !strings.Contains(out, "443") {
+		t.Fatalf("expected ports list override; got:\n%s", out)
+	}
+}

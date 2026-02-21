@@ -116,7 +116,15 @@ func LoadTemplate(loader SourceLoader, templatePath string, token string) ([]byt
 
 // LoadValidations loads a YAML file containing a list of validations.
 func LoadValidations(filePath string, token string) ([]spec.Validation, error) {
-	data, err := fetch(filePath, token, false)
+	var data []byte
+	var err error
+	if isRemotePath(filePath) {
+		data, err = fetch(filePath, token, false)
+	} else if _, ok := ParseGitHubURL(filePath); ok {
+		data, err = fetch(filePath, token, false)
+	} else {
+		data, err = os.ReadFile(filePath)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("reading validation file '%s': %w", filePath, err)
 	}

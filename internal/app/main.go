@@ -14,6 +14,7 @@ import (
 	"github.com/lnrdll/ymr/internal/source"
 	"github.com/lnrdll/ymr/internal/spec"
 	"github.com/lnrdll/ymr/internal/validation"
+	"gopkg.in/yaml.v3"
 )
 
 // Run is the main entrypoint for the application logic.
@@ -36,7 +37,7 @@ func Run(cfg Config) error {
 	paramLookup := spec.BuildParamLookup(specConfig)
 
 	// (Override) Parameters
-	paramsOverride, err := applyParamsOverrides(paramLookup, cfg.OverrideParams)
+	paramsOverride, err := applyParamsOverrides(paramLookup, cfg.OverrideParams, cfg.OverrideParamFiles, cfg.OverrideParamYAML, token)
 	if err != nil {
 		return err
 	}
@@ -175,8 +176,11 @@ func applyParamsOverride(paramMap map[string]any, cliOverrides map[string]any) {
 func applyParamsOverrides(
 	paramLookup map[string]map[string]any,
 	overrideParams []string,
+	overrideParamFiles []string,
+	overrideParamYAML []string,
+	token string,
 ) (map[string]any, error) {
-	paramsOverride, err := spec.ParseCliParams(overrideParams)
+	paramsOverride, err := buildParamsOverride(overrideParams, overrideParamFiles, overrideParamYAML, token)
 	if err != nil {
 		return nil, fmt.Errorf("parsing override parameters: %w", err)
 	}
@@ -188,6 +192,42 @@ func applyParamsOverrides(
 		}
 	}
 	return paramsOverride, nil
+}
+
+func buildParamsOverride(
+	overrideParams []string,
+	overrideParamFiles []string,
+	overrideParamYAML []string,
+	token string,
+) (map[string]any, error) {
+	overrides := make(map[string]any)
+
+	for _, p := range overrideParamFiles {
+		m, err := source.LoadParams(p, token)
+		if err != nil {
+			return nil, err
+		}
+		maps.Copy(overrides, m)
+	}
+
+	for _, s := range overrideParamYAML {
+		var m map[string]any
+		if err := yaml.Unmarshal([]byte(s), &m); err != nil {
+			return nil, fmt.Errorf("parsing --param-yaml: %w", err)
+		}
+		if m == nil {
+			m = make(map[string]any)
+		}
+		maps.Copy(overrides, m)
+	}
+
+	m, err := spec.ParseCliParams(overrideParams)
+	if err != nil {
+		return nil, err
+	}
+	maps.Copy(overrides, m)
+
+	return overrides, nil
 }
 
 func mapKeys(m map[string]any) []string {

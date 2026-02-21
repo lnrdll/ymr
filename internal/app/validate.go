@@ -22,7 +22,7 @@ func Validate(cfg Config) error {
 	applyTemplateOverride(specConfig, cfg.OverrideTemplate)
 
 	paramLookup := spec.BuildParamLookup(specConfig)
-	paramsOverride, err := applyParamsOverrides(paramLookup, cfg.OverrideParams)
+	paramsOverride, err := applyParamsOverrides(paramLookup, cfg.OverrideParams, cfg.OverrideParamFiles, cfg.OverrideParamYAML, token)
 	if err != nil {
 		return err
 	}

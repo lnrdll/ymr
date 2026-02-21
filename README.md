@@ -78,7 +78,7 @@ If you're using `ymr` from an AI agent / coding assistant, read these first:
 `ymr` can be run **without** a `--spec` (`-s`) flag (spec-less mode), which is useful for simple, one-off template rendering. In this mode, you must provide:
 
 - A template file/URL via the `--template` (`-T`) flag.
-- At least one parameter via the `--param` (`-p`) flag.
+- At least one parameter source via `--param` (`-p`), `--param-file`, or `--param-yaml`.
 
 This mode is ideal for CI/CD pipelines or simple scripts where a full `spec.yaml` is unnecessary.
 
@@ -244,6 +244,8 @@ ymr run [flags]
 *   `-T`, `--template <path>`: A single template file/URL to override the `templates` list in the spec.
 *   `-o`, `--output <directory>`: Output directory for rendered files. Use `-` for stdout.
 *   `-p`, `--param <key=value>`: Override a parameter (e.g., `key=value`). Can be used multiple times.
+*   `--param-file <path|url>`: Override parameters from a YAML/JSON mapping file (local path or URL). Can be used multiple times.
+*   `--param-yaml <yaml>`: Override parameters from an inline YAML/JSON mapping. Can be used multiple times.
 *   `-t`, `--target <id>`: Override which targets to render. Can be used multiple times.
 *   `--token <token>`: GitHub token for accessing private repositories (or use `GITHUB_TOKEN` environment variable).
 *   `--validation <path>`: Path to a policy file. If provided, this will override any validations in the spec file.
@@ -255,6 +257,9 @@ ymr run [flags]
 ```bash
 # Spec-less mode
 ymr run --template ./example/gcp-cloud-run/service.yaml -p version=111 -o -
+
+# Spec-less mode with a YAML params file
+ymr run -T ./example/k8s/deployment.yaml -t dev --param-file ./params.yaml -o -
 
 # Strict mode (fail on any render error)
 ymr run -s example/k8s --strict -o -
