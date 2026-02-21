@@ -28,18 +28,9 @@ via CLI flags.`,
 			if cfg.OverrideTemplate == "" {
 				log.Fatalf("\nError: in spec-less mode (no -s flag), --template (-T) is required.\n")
 			}
-			if !cfg.Plan && len(cfg.OverrideParams) == 0 && len(cfg.OverrideParamFiles) == 0 && len(cfg.OverrideParamYAML) == 0 {
+			if len(cfg.OverrideParams) == 0 && len(cfg.OverrideParamFiles) == 0 && len(cfg.OverrideParamYAML) == 0 {
 				log.Fatalf("\nError: in spec-less mode (no -s flag), at least one of --param, --param-file, or --param-yaml is required.\n")
 			}
-		}
-
-		if cfg.Plan {
-			plan, err := app.Plan(cfg)
-			if err != nil {
-				log.Fatalf("Error: %v\n", err)
-			}
-			cmd.Print(plan)
-			return
 		}
 
 		if err := app.Run(cfg); err != nil {
@@ -134,10 +125,4 @@ func init() {
 		"Fail if any template/target render step errors",
 	)
 
-	runCmd.PersistentFlags().BoolVar(
-		&cfg.Plan,
-		"plan",
-		false,
-		"Print the render plan (outputs that would be generated) without rendering",
-	)
 }

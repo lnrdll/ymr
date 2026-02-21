@@ -253,7 +253,6 @@ ymr run [flags]
 *   `--token <token>`: GitHub token for accessing private repositories (or use `GITHUB_TOKEN` environment variable).
 *   `--validation <path>`: Path to a policy file. If provided, this will override any validations in the spec file.
 *   `--strict`: Fail the run if any template/target render step errors. By default, `ymr` runs in best-effort mode and skips failed templates/targets.
-*   `--plan`: Print the outputs that would be generated (target/template/output filenames) without rendering.
 *   `--debug`: Enable debug logging.
 
 **Example `ymr run` usage:**
@@ -261,9 +260,6 @@ ymr run [flags]
 ```bash
 # Spec-less mode
 ymr run --template ./example/gcp-cloud-run/service.yaml -p version=111 -o -
-
-# Plan mode
-ymr run -s example/k8s --plan
 
 # Spec-less mode with a YAML params file
 ymr run -T ./example/k8s/deployment.yaml -t dev --param-file ./params.yaml -o -
