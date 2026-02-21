@@ -4,6 +4,7 @@ package app
 type Config struct {
 	Debug              bool
 	Strict             bool
+	Plan               bool
 	GithubToken        string
 	OutputDir          string
 	OverrideParams     []string
