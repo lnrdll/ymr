@@ -273,9 +273,14 @@ func loadSpecConfig(cfg Config, token string) (*spec.SpecConfig, source.SourceLo
 	}
 
 	// Spec-less mode
+	targetIds := []string{""}
+	if len(cfg.OverrideTargets) > 0 {
+		targetIds = cfg.OverrideTargets
+	}
+
 	specConfig := &spec.SpecConfig{
 		Templates:  []string{cfg.OverrideTemplate},
-		TargetIds:  []string{cfg.SpecFile},
+		TargetIds:  targetIds,
 		Parameters: []spec.ParamSet{},
 	}
 
