@@ -151,6 +151,9 @@ Generates a boilerplate `spec.yaml` file in your current directory. This is a gr
 
 ```bash
 ymr init
+
+# Overwrite an existing spec.yaml
+ymr init --force
 ```
 
 <details>

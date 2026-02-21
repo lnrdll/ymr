@@ -98,7 +98,16 @@ target IDs, and parameters.`,
 	Run: runInit,
 }
 
+var forceInit bool
+
 func init() {
+	initCmd.Flags().BoolVar(
+		&forceInit,
+		"force",
+		false,
+		"Overwrite existing spec.yaml",
+	)
+
 	initCmd.Flags().StringSliceVar(
 		&specData.Templates,
 		"templates",
@@ -125,15 +134,21 @@ func init() {
 	rootCmd.AddCommand(initCmd)
 }
 
+func writeSpecFile(specFile string, content []byte, force bool) error {
+	if !force {
+		if _, err := os.Stat(specFile); err == nil {
+			return fmt.Errorf("%s already exists in this directory", specFile)
+		} else if !os.IsNotExist(err) {
+			return err
+		}
+	}
+
+	return os.WriteFile(specFile, content, 0644)
+}
+
 // runInit generates a boilerplate spec.yaml file in the current directory.
 func runInit(cmd *cobra.Command, args []string) {
 	specFile := "spec.yaml"
-
-	if _, err := os.Stat(specFile); err == nil {
-		// TODO
-		slog.Error(specFile + "already exists in this directory.")
-		os.Exit(1)
-	}
 
 	specData.isBoilerplate = len(specData.Templates) == 0 && len(specData.Targets) == 0
 
@@ -149,9 +164,8 @@ func runInit(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	err = os.WriteFile(specFile, content.Bytes(), 0644)
-	if err != nil {
-		slog.Debug(fmt.Sprintf("Error writing spec file '%s': %v", specFile, err))
+	if err := writeSpecFile(specFile, content.Bytes(), forceInit); err != nil {
+		slog.Error("failed to write spec file", "error", err)
 		os.Exit(1)
 	}
 
