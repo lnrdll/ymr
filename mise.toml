@@ -1,80 +1,59 @@
-############################################
-#
-# Hooks
-#
-############################################
-
 [settings]
 quiet = true
 
-############################################
-#
-# Hooks
-#
-############################################
-
 [hooks]
 enter = "mise install"
-
-############################################
-#
-# Tools
-#
-############################################
 
 [tools]
 golang = "1.25"
 golangci-lint = "latest"
 
-############################################
-#
-# Tasks
-#
-############################################
+[vars]
+name = "github.com/lnrdll/ymr"
 
 [tasks.init]
-description = "Init"
+description = "(i) Init"
 alias = "i"
-dir = "{{ config_root }}/cmd"
+dir = "{{ config_root }}"
 run = '''
-go mod init github.com/lnrdll/ymr
+go mod init {{ vars.name }}
 go mod tidy
 '''
 
 [tasks.clean]
-description = "Clean modules"
+description = "(c) Clean modules"
 alias = "c"
-dir = "{{ config_root }}/cmd"
+dir = "{{ config_root }}"
 run = "go clean -modcache"
 
 [tasks.update]
-description = "Update all modules"
+description = "(u) Update all modules"
 alias = "u"
-dir = "{{ config_root }}/cmd"
+dir = "{{ config_root }}"
 run = '''
 go get -u -t ./...
 go mod tidy
 '''
 
 [tasks.run]
-description = "Run application locally"
+description = "(r) Run application locally"
 alias = "r"
 dir = "{{ config_root }}/cmd"
 run = "go run main.go"
 
 [tasks.lint]
-description = "Go Lint"
+description = "(l) Go Lint"
 alias = "l"
-dir = "{{ config_root }}/cmd"
+dir = "{{ config_root }}"
 run = "golangci-lint run -v"
 
 [tasks.test]
-description = "Run unit tests"
+description = "(t) Run unit tests"
 alias = "t"
 run = "go test -v -cover ./..."
 
 [tasks.check]
-description = "Run lint + tests"
+description = "(ck) Run lint + tests"
 alias = "ck"
 run = [
   { task = "lint" },
@@ -82,6 +61,6 @@ run = [
 ]
 
 [tasks.build]
-description = "Build local binary"
+description = "(b) Build local binary"
 alias = "b"
-run = "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ymr"
+run = "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -ldflags='-s -w -buildid=' -o ymr"

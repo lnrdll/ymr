@@ -78,6 +78,7 @@ echo "Building ${VERSION} (${COMMIT}) for ${GOOS}/${GOARCH}"
 	cd "${ROOT_DIR}"
 	CGO_ENABLED="${CGO_ENABLED:-0}" GOOS="${GOOS}" GOARCH="${GOARCH}" go build \
 		-trimpath \
+		-buildvcs=false \
 		-ldflags "${LDFLAGS}" \
 		-o "${tmpdir}/${bin_name}" \
 		"${PKG}"
