@@ -90,12 +90,16 @@ func LoadTemplate(loader SourceLoader, templatePath string, token string) ([]byt
 	if filepath.IsAbs(templatePath) {
 		finalPath = templatePath
 	} else {
-		// Join the base path with the relative template path.
-		// For remote paths, this correctly resolves relative URLs.
-		finalPath, err = url.JoinPath(basePath, templatePath)
-		if err != nil {
-			slog.Debug("Error joining path", "basePath", basePath, "templatePath", templatePath, "error", err)
-			return nil, fmt.Errorf("error joining path: %w", err)
+		if isRemotePath(basePath) {
+			// Join the base path with the relative template path.
+			// For remote paths, this correctly resolves relative URLs.
+			finalPath, err = url.JoinPath(basePath, templatePath)
+			if err != nil {
+				slog.Debug("Error joining path", "basePath", basePath, "templatePath", templatePath, "error", err)
+				return nil, fmt.Errorf("error joining path: %w", err)
+			}
+		} else {
+			finalPath = filepath.Join(basePath, templatePath)
 		}
 	}
 

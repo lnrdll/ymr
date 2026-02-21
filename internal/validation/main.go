@@ -10,7 +10,7 @@ import (
 )
 
 func Check(params map[string]any, validations []spec.Validation) error {
-	slog.Debug("Execution validation policies", "params", params, "validations", validations)
+	slog.Debug("Executing validation policies", "validations", len(validations), "param_count", len(params))
 
 	if len(validations) == 0 {
 		return nil

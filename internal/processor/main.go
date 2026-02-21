@@ -41,7 +41,7 @@ func ProcessContent(templateContent []byte, params map[string]any) (string, erro
 
 // traverse recursively visits every node in the YAML tree, handling map keys and values.
 func traverse(node *yaml.Node, params map[string]any) {
-	slog.Debug("Traversing node", "kind", node.Kind, "tag", node.Tag, "value", node.Value)
+	slog.Debug("Traversing node", "kind", node.Kind, "tag", node.Tag)
 
 	switch node.Kind {
 	case yaml.DocumentNode:
@@ -129,7 +129,7 @@ func updateNodeValue(node *yaml.Node, newValue any, directive string) {
 
 	err := replacementNode.Encode(newValue)
 	if err != nil {
-		slog.Debug("Failed to encode replacement node", "error", err, "newValue", newValue)
+		slog.Debug("Failed to encode replacement node", "error", err)
 		node.Tag = "!!str"
 		node.Value = fmt.Sprintf("ERROR_ENCONDING:%v", err)
 	}
@@ -155,7 +155,7 @@ func updateNodeValue(node *yaml.Node, newValue any, directive string) {
 
 // executeTemplate renders a Go template string with the provided parameters.
 func executeTemplate(tmplStr string, params map[string]any) (string, error) {
-	slog.Debug("executeTemplate", "template", tmplStr, "params", params)
+	slog.Debug("executeTemplate", "template", tmplStr)
 
 	tmpl, err := template.New("template").
 		Option("missingkey=error").

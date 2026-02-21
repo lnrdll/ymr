@@ -29,12 +29,14 @@ func ParseCliParams(params []string) (map[string]any, error) {
 
 	for _, p := range params {
 		parts := strings.SplitN(p, "=", 2)
-		if len(parts) > 2 {
+		if len(parts) != 2 {
 			return nil, fmt.Errorf("invalid parameter format: '%s'. Use key=value", p)
 		}
-
-		key := parts[0]
+		key := strings.TrimSpace(parts[0])
 		val := parts[1]
+		if key == "" {
+			return nil, fmt.Errorf("invalid parameter format: '%s'. Key cannot be empty", p)
+		}
 
 		if i, err := strconv.ParseInt(val, 10, 64); err == nil {
 			overrides[key] = i

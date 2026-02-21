@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"maps"
@@ -124,15 +125,21 @@ func handleOutput(
 		}
 	}
 
+	var writeErrs []error
 	for _, output := range outputs {
 		outPath := filepath.Join(outputDir, output.TargetFile)
 		err := os.WriteFile(outPath, []byte(output.Content), 0644)
 		if err != nil {
-			slog.Debug(fmt.Sprintf("Skipping file '%s' due to error: %v", outPath, err))
+			slog.Debug("Failed to write output file", "path", outPath, "error", err)
+			writeErrs = append(writeErrs, fmt.Errorf("writing output file '%s': %w", outPath, err))
 			continue
 		} else {
 			slog.Debug("Generated file", "path", outPath)
 		}
+	}
+
+	if len(writeErrs) > 0 {
+		return errors.Join(writeErrs...)
 	}
 
 	return nil
@@ -163,7 +170,7 @@ func applyParamsOverrides(
 	}
 
 	if len(paramsOverride) > 0 {
-		slog.Debug("Overriding parameters", "count", len(paramsOverride), "parameters", paramsOverride)
+		slog.Debug("Overriding parameters", "count", len(paramsOverride), "keys", mapKeys(paramsOverride))
 		for _, paramMap := range paramLookup {
 			applyParamsOverride(paramMap, paramsOverride)
 		}
@@ -171,11 +178,20 @@ func applyParamsOverrides(
 	return paramsOverride, nil
 }
 
+func mapKeys(m map[string]any) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+	return keys
+}
+
 // filterTargets now performs strict explicit matching.
 // If overrideTargets is provided, only targets existing in BOTH slices are returned.
 func filterTargets(specTargetIds []string, overrideTargets []string) []string {
 	if len(overrideTargets) == 0 {
-		slog.Debug("Rendering all targets", "count", len(overrideTargets))
+		slog.Debug("Rendering all targets", "count", len(specTargetIds))
 		return specTargetIds
 	}
 

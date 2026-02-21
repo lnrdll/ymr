@@ -22,7 +22,7 @@ var rootCmd = &cobra.Command{
 'ymr' is a lightweight, spec-driven YAML template tool.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		_ = cmd.Help()
-		os.Exit(1)
+		os.Exit(0)
 	},
 }
 
