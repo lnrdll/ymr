@@ -1,6 +1,8 @@
 package processor
 
 import (
+	"io"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -149,4 +151,40 @@ func TestInvalidYAML(t *testing.T) {
 	input := []byte(`: - invalid yaml`)
 	_, err := ProcessContent(input, nil)
 	assert.Error(t, err, "Should return error for invalid YAML input")
+}
+
+func TestProcessContent_MultiDocument(t *testing.T) {
+	input := []byte(`a: 1 # from-param: {{ .a }}
+---
+b: default # from-param: {{ .b }}
+`)
+
+	got, err := ProcessContent(input, map[string]any{"a": 2, "b": "x"})
+	require.NoError(t, err)
+
+	docs := decodeYAMLDocuments(t, got)
+	require.Len(t, docs, 2)
+	assert.Equal(t, map[string]any{"a": 2}, docs[0])
+	assert.Equal(t, map[string]any{"b": "x"}, docs[1])
+}
+
+func decodeYAMLDocuments(t *testing.T, s string) []map[string]any {
+	t.Helper()
+
+	dec := yaml.NewDecoder(strings.NewReader(s))
+	var docs []map[string]any
+	for {
+		var m map[string]any
+		err := dec.Decode(&m)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			require.NoError(t, err)
+		}
+		if m != nil {
+			docs = append(docs, m)
+		}
+	}
+	return docs
 }

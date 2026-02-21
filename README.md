@@ -314,6 +314,8 @@ ymr version
 
 `ymr` uses special comments within your YAML templates to identify where parameters should be injected.
 
+Templates may contain multiple YAML documents separated by `---`; `ymr` processes each document.
+
 *   `# from-param: {{ .var }}`: Replaces the entire value with the value of the parameter `{{ .var }}`.
 
     **Template:**

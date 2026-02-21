@@ -3,6 +3,7 @@ package processor
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"log/slog"
 	"regexp"
 	"strings"
@@ -19,24 +20,60 @@ var simpleTemplateRegex = regexp.MustCompile(`^\s*{{\s*\.([a-zA-Z0-9_.-]+)\s*}}\
 
 // ProcessContent takes template content and substitutes params.
 func ProcessContent(templateContent []byte, params map[string]any) (string, error) {
-	var rootNode yaml.Node
-
-	err := yaml.Unmarshal(templateContent, &rootNode)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse template yaml: %w", err)
+	if len(bytes.TrimSpace(templateContent)) == 0 {
+		return "", nil
 	}
 
-	traverse(&rootNode, params)
+	dec := yaml.NewDecoder(bytes.NewReader(templateContent))
+	docs := make([]yaml.Node, 0)
 
-	var b bytes.Buffer
-	encoder := yaml.NewEncoder(&b)
-	encoder.SetIndent(2)
-	err = encoder.Encode(&rootNode)
-	if err != nil {
-		return "", fmt.Errorf("failed to re-marshal yaml: %w", err)
+	for {
+		var doc yaml.Node
+		err := dec.Decode(&doc)
+		if err != nil {
+			if errorsIsEOF(err) {
+				break
+			}
+			return "", fmt.Errorf("failed to parse template yaml: %w", err)
+		}
+		docs = append(docs, doc)
 	}
 
-	return b.String(), nil
+	for i := range docs {
+		traverse(&docs[i], params)
+	}
+
+	var out bytes.Buffer
+	for i := range docs {
+		if i > 0 {
+			out.WriteString("---\n")
+		}
+
+		var b bytes.Buffer
+		enc := yaml.NewEncoder(&b)
+		enc.SetIndent(2)
+
+		nodeToEncode := &docs[i]
+		if docs[i].Kind == yaml.DocumentNode && len(docs[i].Content) == 1 {
+			nodeToEncode = docs[i].Content[0]
+		}
+
+		if err := enc.Encode(nodeToEncode); err != nil {
+			_ = enc.Close()
+			return "", fmt.Errorf("failed to re-marshal yaml: %w", err)
+		}
+		if err := enc.Close(); err != nil {
+			return "", fmt.Errorf("failed to re-marshal yaml: %w", err)
+		}
+
+		out.Write(b.Bytes())
+	}
+
+	return out.String(), nil
+}
+
+func errorsIsEOF(err error) bool {
+	return err == io.EOF
 }
 
 // traverse recursively visits every node in the YAML tree, handling map keys and values.

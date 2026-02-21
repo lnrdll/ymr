@@ -9,6 +9,8 @@ This file is written for automated agents (code assistants) so they can use `ymr
 - Input: YAML template(s) with directives in comments plus a parameter source.
 - Output: rendered YAML content written to stdout (`-o -`) or to files (`-o <dir>`).
 
+Templates can be single-document or multi-document YAML (documents separated by `---`).
+
 Directives:
 
 - `# from-param: <go-template>`: replace the node value with the rendered result.
