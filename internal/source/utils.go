@@ -5,12 +5,17 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"regexp"
+	"strings"
+	"time"
 
 	"github.com/lnrdll/ymr/internal/spec"
 
 	"gopkg.in/yaml.v3"
 )
+
+const defaultHTTPTimeout = 30 * time.Second
 
 // Regex for GitHub blob URLs (e.g., .../user/repo/blob/branch/path/to/file)
 var githubBlobRegex = regexp.MustCompile(`^https?://github\.com/([^/]+)/([^/]+)/blob/([^/]+)/(.+)`)
@@ -85,16 +90,18 @@ func fetch(url string, token string, isSpec bool) ([]byte, error) {
 		transformedURL = url
 	}
 
-	client := &http.Client{}
+	client := &http.Client{Timeout: defaultHTTPTimeout}
 	req, err := http.NewRequest("GET", transformedURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create HTTP request for %s: %w", transformedURL, err)
 	}
 
-	if token != "" {
+	if token != "" && shouldUseGitHubAuth(transformedURL) {
 		req.Header.Add("Authorization", "Bearer "+token)
 	}
-	req.Header.Add("Accept", "application/vnd.github.v3.raw")
+	if shouldUseGitHubAuth(transformedURL) {
+		req.Header.Add("Accept", "application/vnd.github.v3.raw")
+	}
 	req.Header.Add("Cache-control", "no-cache")
 
 	resp, err := client.Do(req)
@@ -114,4 +121,14 @@ func fetch(url string, token string, isSpec bool) ([]byte, error) {
 	}
 
 	return io.ReadAll(resp.Body)
+}
+
+func shouldUseGitHubAuth(rawURL string) bool {
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil {
+		return false
+	}
+
+	host := strings.ToLower(parsedURL.Hostname())
+	return host == "github.com" || host == "raw.githubusercontent.com"
 }

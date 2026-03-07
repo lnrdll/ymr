@@ -27,5 +27,14 @@ func (h *HTTPLoader) LoadSpec(token string) (*spec.SpecConfig, error) {
 
 // GetBasePath returns the base URL for resolving relative template paths.
 func (h *HTTPLoader) GetBasePath() string {
-	return path.Dir(h.SpecURL.String())
+	if h.SpecURL == nil {
+		return ""
+	}
+
+	baseURL := *h.SpecURL
+	baseURL.Path = path.Dir(baseURL.Path)
+	baseURL.RawQuery = ""
+	baseURL.Fragment = ""
+
+	return baseURL.String()
 }
