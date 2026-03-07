@@ -389,11 +389,3 @@ You're welcome to open issues or submit pull requests, though responses may take
 This project is licensed under the MIT License. See the `LICENSE` file for details.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-### Disclaimer
-
-I originally started this project to address a specific challenge with service deployments and YAML. Over time, I decided to also use it as a testbed for experimenting with various LLMs. As a result, this repository will serve as a playground for trying out different LLMs and related tools.
-
-I will ensure that no changes introduced through LLM experimentation are merged if they could potentially break existing functionality.
-
-At the time of writing, only the logo and some test cases have been created using LLMs.
