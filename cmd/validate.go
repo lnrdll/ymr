@@ -33,7 +33,7 @@ It does not write rendered output files.`,
 			}
 		}
 
-		if err := app.Validate(cfg); err != nil {
+		if err := app.NewValidateCommand(cfg).Execute(); err != nil {
 			log.Fatalf("Error: %v\n", err)
 		}
 	},

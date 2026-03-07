@@ -33,7 +33,7 @@ via CLI flags.`,
 			}
 		}
 
-		if err := app.Run(cfg); err != nil {
+		if err := app.NewRunCommand(cfg).Execute(); err != nil {
 			log.Fatalf("Error: %v\n", err)
 		}
 	},
