@@ -19,55 +19,27 @@ import (
 
 // Run is the main entrypoint for the application logic.
 func Run(cfg Config) error {
-	token := getGithubToken(cfg.GithubToken)
-
 	// Handle output dir/'-o -' logic
 	outputDir, terminalOutput := prepareOutputDir(cfg.OutputDir)
 
-	// Load the specs
-	specConfig, loader, err := loadSpecConfig(cfg, token)
+	plan, err := preparePlan(cfg)
 	if err != nil {
 		return err
-	}
-
-	// (Override) Template
-	applyTemplateOverride(specConfig, cfg.OverrideTemplate)
-
-	// Build the parameter map
-	paramLookup := spec.BuildParamLookup(specConfig)
-
-	// (Override) Parameters
-	paramsOverride, err := applyParamsOverrides(paramLookup, cfg.OverrideParams, cfg.OverrideParamFiles, cfg.OverrideParamYAML, token)
-	if err != nil {
-		return err
-	}
-
-	// (Override) Targets
-	targetsToRender := filterTargets(specConfig.TargetIds, cfg.OverrideTargets)
-
-	// Load validations
-	validations := specConfig.Validations
-	if cfg.ValidationFile != "" {
-		var err error
-		validations, err = source.LoadValidations(cfg.ValidationFile, token)
-		if err != nil {
-			return err
-		}
 	}
 
 	// Validate Rules
-	if err := validateTargets(targetsToRender, paramLookup, paramsOverride, validations); err != nil {
+	if err := validateTargets(plan.Targets, plan.ParamLookup, plan.ParamsOverride, plan.Validations); err != nil {
 		return err
 	}
 
 	// Process each template against each target
 	allOutputs, renderErr := processTemplates(
-		specConfig,
-		loader,
-		token,
-		targetsToRender,
-		paramLookup,
-		paramsOverride,
+		plan.SpecConfig,
+		plan.Loader,
+		plan.Token,
+		plan.Targets,
+		plan.ParamLookup,
+		plan.ParamsOverride,
 		cfg.OverrideTemplate,
 		cfg.Strict,
 	)

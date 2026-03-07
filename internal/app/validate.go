@@ -12,39 +12,21 @@ import (
 )
 
 func Validate(cfg Config) error {
-	token := getGithubToken(cfg.GithubToken)
-
-	specConfig, loader, err := loadSpecConfig(cfg, token)
+	plan, err := preparePlan(cfg)
 	if err != nil {
 		return err
 	}
 
-	applyTemplateOverride(specConfig, cfg.OverrideTemplate)
-
-	paramLookup := spec.BuildParamLookup(specConfig)
-	paramsOverride, err := applyParamsOverrides(paramLookup, cfg.OverrideParams, cfg.OverrideParamFiles, cfg.OverrideParamYAML, token)
-	if err != nil {
-		return err
-	}
-
-	targetsToValidate := filterTargets(specConfig.TargetIds, cfg.OverrideTargets)
+	targetsToValidate := plan.Targets
 	if cfg.Strict && len(cfg.OverrideTargets) > 0 && len(targetsToValidate) == 0 {
 		return fmt.Errorf("no requested targets matched spec targetIds")
 	}
 
-	validations := specConfig.Validations
-	if cfg.ValidationFile != "" {
-		validations, err = source.LoadValidations(cfg.ValidationFile, token)
-		if err != nil {
-			return err
-		}
-	}
-
-	if err := validateTargets(targetsToValidate, paramLookup, paramsOverride, validations); err != nil {
+	if err := validateTargets(targetsToValidate, plan.ParamLookup, plan.ParamsOverride, plan.Validations); err != nil {
 		return err
 	}
 
-	if err := validateTemplates(specConfig, loader, token, targetsToValidate, paramLookup, paramsOverride, cfg.OverrideTemplate, cfg.Strict); err != nil {
+	if err := validateTemplates(plan.SpecConfig, plan.Loader, plan.Token, targetsToValidate, plan.ParamLookup, plan.ParamsOverride, cfg.OverrideTemplate, cfg.Strict); err != nil {
 		return err
 	}
 
