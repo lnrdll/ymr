@@ -16,9 +16,13 @@ type executionPlan struct {
 }
 
 func preparePlan(cfg Config) (*executionPlan, error) {
-	token := getGithubToken(cfg.GithubToken)
+	return preparePlanWithDeps(cfg, newDefaultDeps())
+}
 
-	specConfig, loader, err := loadSpecConfig(cfg, token)
+func preparePlanWithDeps(cfg Config, deps appDeps) (*executionPlan, error) {
+	token := getGithubTokenWithRuntime(cfg.GithubToken, deps.runtime)
+
+	specConfig, loader, err := loadSpecConfigWithDeps(cfg, token, deps)
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +30,7 @@ func preparePlan(cfg Config) (*executionPlan, error) {
 	applyTemplateOverride(specConfig, cfg.OverrideTemplate)
 
 	paramLookup := spec.BuildParamLookup(specConfig)
-	paramsOverride, err := applyParamsOverrides(cfg.OverrideParams, cfg.OverrideParamFiles, cfg.OverrideParamYAML, token)
+	paramsOverride, err := applyParamsOverrides(deps.source, cfg.OverrideParams, cfg.OverrideParamFiles, cfg.OverrideParamYAML, token)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +39,7 @@ func preparePlan(cfg Config) (*executionPlan, error) {
 
 	validations := specConfig.Validations
 	if cfg.ValidationFile != "" {
-		validations, err = source.LoadValidations(cfg.ValidationFile, token)
+		validations, err = deps.source.LoadValidations(cfg.ValidationFile, token)
 		if err != nil {
 			return nil, err
 		}

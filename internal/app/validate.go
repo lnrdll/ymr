@@ -4,36 +4,17 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"os"
 
-	"github.com/lnrdll/ymr/internal/processor"
 	"github.com/lnrdll/ymr/internal/source"
 	"github.com/lnrdll/ymr/internal/spec"
 )
 
 func Validate(cfg Config) error {
-	plan, err := preparePlan(cfg)
-	if err != nil {
-		return err
-	}
-
-	targetsToValidate := plan.Targets
-	if cfg.Strict && len(cfg.OverrideTargets) > 0 && len(targetsToValidate) == 0 {
-		return fmt.Errorf("no requested targets matched spec targetIds")
-	}
-
-	if err := validateTargets(targetsToValidate, plan.ParamLookup, plan.ParamsOverride, plan.Validations); err != nil {
-		return err
-	}
-
-	if err := validateTemplates(plan.SpecConfig, plan.Loader, plan.Token, targetsToValidate, plan.ParamLookup, plan.ParamsOverride, cfg.OverrideTemplate, cfg.Strict); err != nil {
-		return err
-	}
-
-	return nil
+	return NewValidateCommand(cfg).Execute()
 }
 
 func validateTemplates(
+	deps appDeps,
 	specConfig *spec.SpecConfig,
 	loader source.SourceLoader,
 	token string,
@@ -48,11 +29,11 @@ func validateTemplates(
 	for _, templatePath := range specConfig.Templates {
 		loaderToUse := loader
 		if overrideTemplate != "" {
-			cwd, _ := os.Getwd()
-			loaderToUse = &source.LocalLoader{BaseDir: cwd, SpecPath: ""}
+			cwd, _ := deps.runtime.Getwd()
+			loaderToUse = deps.source.NewLocalLoader(cwd)
 		}
 
-		content, err := source.LoadTemplate(loaderToUse, templatePath, token)
+		content, err := deps.source.LoadTemplate(loaderToUse, templatePath, token)
 		if err != nil {
 			if strict {
 				errs = append(errs, fmt.Errorf("loading template '%s': %w", templatePath, err))
@@ -65,7 +46,7 @@ func validateTemplates(
 		for _, targetId := range targets {
 			params := resolveParamsForTarget(paramLookup, targetId, paramsOverride)
 
-			_, err := processor.ProcessContent(content, params)
+			_, err := deps.processor.ProcessContent(content, params)
 			if err != nil {
 				if strict {
 					errs = append(errs, fmt.Errorf("processing template '%s' for target '%s': %w", templatePath, targetId, err))

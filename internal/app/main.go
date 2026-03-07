@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"maps"
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -13,51 +12,22 @@ import (
 	"github.com/lnrdll/ymr/internal/processor"
 	"github.com/lnrdll/ymr/internal/source"
 	"github.com/lnrdll/ymr/internal/spec"
-	"github.com/lnrdll/ymr/internal/validation"
 	"gopkg.in/yaml.v3"
 )
 
 // Run is the main entrypoint for the application logic.
 func Run(cfg Config) error {
-	// Handle output dir/'-o -' logic
-	outputDir, terminalOutput := prepareOutputDir(cfg.OutputDir)
-
-	plan, err := preparePlan(cfg)
-	if err != nil {
-		return err
-	}
-
-	// Validate Rules
-	if err := validateTargets(plan.Targets, plan.ParamLookup, plan.ParamsOverride, plan.Validations); err != nil {
-		return err
-	}
-
-	// Process each template against each target
-	allOutputs, renderErr := processTemplates(
-		plan.SpecConfig,
-		plan.Loader,
-		plan.Token,
-		plan.Targets,
-		plan.ParamLookup,
-		plan.ParamsOverride,
-		cfg.OverrideTemplate,
-		cfg.Strict,
-	)
-	if cfg.Strict && renderErr != nil {
-		return renderErr
-	}
-
-	// Handle Output
-	return handleOutput(allOutputs, terminalOutput, outputDir)
+	return NewRunCommand(cfg).Execute()
 }
 
 func validateTargets(
+	validationPort ValidationPort,
 	targetsToRender []string,
 	paramLookup map[string]map[string]any,
 	paramsOverride map[string]any,
 	validations []spec.Validation,
 ) error {
-	engine, err := validation.NewEngine(validations)
+	engine, err := validationPort.NewEngine(validations)
 	if err != nil {
 		return err
 	}
@@ -76,42 +46,8 @@ func validateTargets(
 
 // handleOutput writes rendered content to files or to the console.
 // It creates the output directory if it doesn't exist.
-func handleOutput(
-	outputs []processor.RenderedOutput,
-	terminalOutput bool,
-	outputDir string,
-) error {
-	if terminalOutput {
-		for _, output := range outputs {
-			fmt.Print(output.Content)
-		}
-		return nil
-	}
-
-	if outputDir != "" {
-		if err := os.MkdirAll(outputDir, 0755); err != nil {
-			return fmt.Errorf("creating output directory '%s': %w", outputDir, err)
-		}
-	}
-
-	var writeErrs []error
-	for _, output := range outputs {
-		outPath := filepath.Join(outputDir, output.TargetFile)
-		err := os.WriteFile(outPath, []byte(output.Content), 0644)
-		if err != nil {
-			slog.Debug("Failed to write output file", "path", outPath, "error", err)
-			writeErrs = append(writeErrs, fmt.Errorf("writing output file '%s': %w", outPath, err))
-			continue
-		} else {
-			slog.Debug("Generated file", "path", outPath)
-		}
-	}
-
-	if len(writeErrs) > 0 {
-		return errors.Join(writeErrs...)
-	}
-
-	return nil
+func handleOutput(outputPort OutputPort, outputs []processor.RenderedOutput, terminalOutput bool, outputDir string) error {
+	return outputPort.Write(outputs, terminalOutput, outputDir)
 }
 
 // prepareOutputDir determines the output directory and whether to print to the terminal.
@@ -123,12 +59,13 @@ func prepareOutputDir(cfgOutputDir string) (string, bool) {
 }
 
 func applyParamsOverrides(
+	sourcePort SourcePort,
 	overrideParams []string,
 	overrideParamFiles []string,
 	overrideParamYAML []string,
 	token string,
 ) (map[string]any, error) {
-	paramsOverride, err := buildParamsOverride(overrideParams, overrideParamFiles, overrideParamYAML, token)
+	paramsOverride, err := buildParamsOverride(sourcePort, overrideParams, overrideParamFiles, overrideParamYAML, token)
 	if err != nil {
 		return nil, fmt.Errorf("parsing override parameters: %w", err)
 	}
@@ -158,6 +95,7 @@ func resolveParamsForTarget(
 }
 
 func buildParamsOverride(
+	sourcePort SourcePort,
 	overrideParams []string,
 	overrideParamFiles []string,
 	overrideParamYAML []string,
@@ -166,7 +104,7 @@ func buildParamsOverride(
 	overrides := make(map[string]any)
 
 	for _, p := range overrideParamFiles {
-		m, err := source.LoadParams(p, token)
+		m, err := sourcePort.LoadParams(p, token)
 		if err != nil {
 			return nil, err
 		}
@@ -225,6 +163,7 @@ func filterTargets(specTargetIds []string, overrideTargets []string) []string {
 
 // processTemplates processes each template against each target and returns the rendered outputs.
 func processTemplates(
+	deps appDeps,
 	specConfig *spec.SpecConfig,
 	loader source.SourceLoader,
 	token string,
@@ -243,11 +182,11 @@ func processTemplates(
 
 		loaderToUse := loader
 		if overrideTemplate != "" {
-			cwd, _ := os.Getwd()
-			loaderToUse = &source.LocalLoader{BaseDir: cwd, SpecPath: ""}
+			cwd, _ := deps.runtime.Getwd()
+			loaderToUse = deps.source.NewLocalLoader(cwd)
 		}
 
-		templateContent, err = source.LoadTemplate(loaderToUse, templatePath, token)
+		templateContent, err = deps.source.LoadTemplate(loaderToUse, templatePath, token)
 		if err != nil {
 			if strict {
 				renderErrs = append(renderErrs, fmt.Errorf("loading template '%s': %w", templatePath, err))
@@ -263,7 +202,7 @@ func processTemplates(
 		for _, targetId := range targetsToRender {
 			params := resolveParamsForTarget(paramLookup, targetId, paramsOverride)
 
-			renderedYaml, err := processor.ProcessContent(templateContent, params)
+			renderedYaml, err := deps.processor.ProcessContent(templateContent, params)
 			if err != nil {
 				if strict {
 					renderErrs = append(renderErrs, fmt.Errorf("processing template '%s' for target '%s': %w", templatePath, targetId, err))
@@ -291,10 +230,14 @@ func processTemplates(
 // loadSpecConfig loads the specification configuration based on the provided application config.
 // It handles both spec file-based and spec-less modes.
 func loadSpecConfig(cfg Config, token string) (*spec.SpecConfig, source.SourceLoader, error) {
+	return loadSpecConfigWithDeps(cfg, token, newDefaultDeps())
+}
+
+func loadSpecConfigWithDeps(cfg Config, token string, deps appDeps) (*spec.SpecConfig, source.SourceLoader, error) {
 	if cfg.IsSpecFile {
 		slog.Debug("Using source loader", "source", cfg.SpecFile)
 
-		loader, err := source.NewSourceLoader(cfg.SpecFile, token)
+		loader, err := deps.source.NewSourceLoader(cfg.SpecFile, token)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -319,8 +262,8 @@ func loadSpecConfig(cfg Config, token string) (*spec.SpecConfig, source.SourceLo
 		Parameters: []spec.ParamSet{},
 	}
 
-	cwd, _ := os.Getwd()
-	loader := &source.LocalLoader{BaseDir: cwd, SpecPath: ""}
+	cwd, _ := deps.runtime.Getwd()
+	loader := deps.source.NewLocalLoader(cwd)
 
 	slog.Debug("Running in spec-less mode", "loader", loader)
 
@@ -337,8 +280,12 @@ func applyTemplateOverride(specConfig *spec.SpecConfig, overrideTemplate string)
 
 // getGithubToken return a github token if provided.
 func getGithubToken(t string) string {
+	return getGithubTokenWithRuntime(t, newDefaultDeps().runtime)
+}
+
+func getGithubTokenWithRuntime(t string, runtimePort RuntimePort) string {
 	if t == "" {
-		return os.Getenv("GITHUB_TOKEN")
+		return runtimePort.Getenv("GITHUB_TOKEN")
 	}
 
 	return t
