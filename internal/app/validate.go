@@ -63,13 +63,7 @@ func validateTemplates(
 		}
 
 		for _, targetId := range targets {
-			params, ok := paramLookup[targetId]
-			if !ok {
-				params = make(map[string]any)
-			}
-			if len(paramsOverride) > 0 && !ok {
-				applyParamsOverride(params, paramsOverride)
-			}
+			params := resolveParamsForTarget(paramLookup, targetId, paramsOverride)
 
 			_, err := processor.ProcessContent(content, params)
 			if err != nil {

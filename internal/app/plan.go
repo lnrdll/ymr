@@ -26,7 +26,7 @@ func preparePlan(cfg Config) (*executionPlan, error) {
 	applyTemplateOverride(specConfig, cfg.OverrideTemplate)
 
 	paramLookup := spec.BuildParamLookup(specConfig)
-	paramsOverride, err := applyParamsOverrides(paramLookup, cfg.OverrideParams, cfg.OverrideParamFiles, cfg.OverrideParamYAML, token)
+	paramsOverride, err := applyParamsOverrides(cfg.OverrideParams, cfg.OverrideParamFiles, cfg.OverrideParamYAML, token)
 	if err != nil {
 		return nil, err
 	}

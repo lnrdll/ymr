@@ -63,7 +63,7 @@ func ParseGitHubURL(url string) (GithubLoader, bool) {
 
 // isRemotePath checks if a given path is an absolute remote URL.
 func isRemotePath(path string) bool {
-	return regexp.MustCompile(`^https?://.*`).MatchString(path)
+	return strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://")
 }
 
 // parseSpec unmarshals the spec file content into a SpecConfig struct.

@@ -57,33 +57,17 @@ func validateTargets(
 	paramsOverride map[string]any,
 	validations []spec.Validation,
 ) error {
+	engine, err := validation.NewEngine(validations)
+	if err != nil {
+		return err
+	}
+
 	for _, targetId := range targetsToRender {
-		params, ok := paramLookup[targetId]
-		if !ok {
-			params = make(map[string]any)
-		}
+		params := resolveParamsForTarget(paramLookup, targetId, paramsOverride)
 
-		if len(paramsOverride) > 0 {
-			applyParamsOverride(params, paramsOverride)
-		}
-
-		// Explicit Filtering: Only include validations where targetId is
-		// explicitly listed. If v.TargetId is empty, it is ignored.
-		var targetValidations []spec.Validation
-		for _, v := range validations {
-			if len(v.TargetId) > 0 && slices.Contains(v.TargetId, targetId) {
-				targetValidations = append(targetValidations, v)
-			}
-		}
-
-		// Only run validation engine if there are applicable rules
-		if len(targetValidations) > 0 {
-			slog.Debug("Running validations", "target", targetId, "count", len(targetValidations))
-			if err := validation.Check(params, targetValidations); err != nil {
-				return fmt.Errorf("validation failed for target '%s': %w", targetId, err)
-			}
-		} else {
-			slog.Debug("No explicit validations found for target", "target", targetId)
+		slog.Debug("Running validations", "target", targetId)
+		if err := engine.CheckTarget(targetId, params); err != nil {
+			return fmt.Errorf("validation failed for target '%s': %w", targetId, err)
 		}
 	}
 
@@ -138,15 +122,7 @@ func prepareOutputDir(cfgOutputDir string) (string, bool) {
 	return cfgOutputDir, false
 }
 
-// applyParamsOverride applies CLI provided parameter overrides to a given parameter map.
-func applyParamsOverride(paramMap map[string]any, cliOverrides map[string]any) {
-	maps.Copy(paramMap, cliOverrides)
-}
-
-// applyParamsOverrides parses and applies CLI parameter overrides to the parameter lookup.
-// It returns the parsed override parameters.
 func applyParamsOverrides(
-	paramLookup map[string]map[string]any,
 	overrideParams []string,
 	overrideParamFiles []string,
 	overrideParamYAML []string,
@@ -159,11 +135,26 @@ func applyParamsOverrides(
 
 	if len(paramsOverride) > 0 {
 		slog.Debug("Overriding parameters", "count", len(paramsOverride), "keys", mapKeys(paramsOverride))
-		for _, paramMap := range paramLookup {
-			applyParamsOverride(paramMap, paramsOverride)
-		}
 	}
 	return paramsOverride, nil
+}
+
+func resolveParamsForTarget(
+	paramLookup map[string]map[string]any,
+	targetId string,
+	paramsOverride map[string]any,
+) map[string]any {
+	resolved := make(map[string]any)
+
+	if base, ok := paramLookup[targetId]; ok {
+		maps.Copy(resolved, base)
+	}
+
+	if len(paramsOverride) > 0 {
+		maps.Copy(resolved, paramsOverride)
+	}
+
+	return resolved
 }
 
 func buildParamsOverride(
@@ -261,7 +252,7 @@ func processTemplates(
 			if strict {
 				renderErrs = append(renderErrs, fmt.Errorf("loading template '%s': %w", templatePath, err))
 			}
-			slog.Debug(fmt.Sprintf("Skipping template '%s' due to error: %v", templatePath, err))
+			slog.Warn("Skipping template due to load error", "template", templatePath, "error", err)
 			continue
 		}
 
@@ -270,21 +261,14 @@ func processTemplates(
 		templateNameOnly := strings.TrimSuffix(templateBaseName, templateExt)
 
 		for _, targetId := range targetsToRender {
-			params, ok := paramLookup[targetId]
-			if !ok {
-				params = make(map[string]any)
-			}
-
-			if len(paramsOverride) > 0 && !ok {
-				applyParamsOverride(params, paramsOverride)
-			}
+			params := resolveParamsForTarget(paramLookup, targetId, paramsOverride)
 
 			renderedYaml, err := processor.ProcessContent(templateContent, params)
 			if err != nil {
 				if strict {
 					renderErrs = append(renderErrs, fmt.Errorf("processing template '%s' for target '%s': %w", templatePath, targetId, err))
 				}
-				slog.Debug(fmt.Sprintf("Skipping template '%s' for target '%s' due to error: %v", templatePath, targetId, err))
+				slog.Warn("Skipping template/target due to processing error", "template", templatePath, "target", targetId, "error", err)
 				continue
 			}
 

@@ -147,3 +147,26 @@ ports:
 		t.Fatalf("expected ports list override; got:\n%s", out)
 	}
 }
+
+func TestResolveParamsForTarget_DoesNotMutateLookup(t *testing.T) {
+	t.Parallel()
+
+	lookup := map[string]map[string]any{
+		"dev": {
+			"name": "base",
+		},
+	}
+	overrides := map[string]any{"name": "override", "newKey": true}
+
+	resolved := resolveParamsForTarget(lookup, "dev", overrides)
+
+	if resolved["name"] != "override" {
+		t.Fatalf("expected override to apply, got %#v", resolved)
+	}
+	if resolved["newKey"] != true {
+		t.Fatalf("expected new override key, got %#v", resolved)
+	}
+	if lookup["dev"]["name"] != "base" {
+		t.Fatalf("expected lookup to stay immutable, got %#v", lookup["dev"])
+	}
+}
