@@ -2,8 +2,9 @@ package app
 
 import (
 	"fmt"
-	"github.com/lnrdll/ymr/internal/spec"
 	"log/slog"
+
+	config "github.com/lnrdll/ymr/internal/domain/config"
 )
 
 // Run is the main entrypoint for the application logic.
@@ -16,7 +17,7 @@ func validateTargets(
 	targetsToRender []string,
 	paramLookup map[string]map[string]any,
 	paramsOverride map[string]any,
-	validations []spec.Validation,
+	validations []config.Validation,
 ) error {
 	engine, err := validationPort.NewEngine(validations)
 	if err != nil {

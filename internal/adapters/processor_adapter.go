@@ -1,8 +1,8 @@
 package adapters
 
 import (
+	processor "github.com/lnrdll/ymr/internal/adapters/processor"
 	"github.com/lnrdll/ymr/internal/ports"
-	"github.com/lnrdll/ymr/internal/processor"
 )
 
 type processorAdapter struct{}

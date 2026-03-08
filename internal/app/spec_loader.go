@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/lnrdll/ymr/internal/source"
-	"github.com/lnrdll/ymr/internal/spec"
+	source "github.com/lnrdll/ymr/internal/adapters/source"
+	config "github.com/lnrdll/ymr/internal/domain/config"
 )
 
-func loadSpecConfigWithDeps(cfg Config, token string, deps appDeps) (*spec.SpecConfig, source.SourceLoader, error) {
+func loadSpecConfigWithDeps(cfg Config, token string, deps appDeps) (*config.SpecConfig, source.SourceLoader, error) {
 	if cfg.IsSpecFile {
 		slog.Debug("Using source loader", "source", cfg.SpecFile)
 
@@ -30,10 +30,10 @@ func loadSpecConfigWithDeps(cfg Config, token string, deps appDeps) (*spec.SpecC
 		targetIds = cfg.OverrideTargets
 	}
 
-	specConfig := &spec.SpecConfig{
+	specConfig := &config.SpecConfig{
 		Templates:  []string{cfg.OverrideTemplate},
 		TargetIds:  targetIds,
-		Parameters: []spec.ParamSet{},
+		Parameters: []config.ParamSet{},
 	}
 
 	cwd, _ := deps.runtime.Getwd()
@@ -44,7 +44,7 @@ func loadSpecConfigWithDeps(cfg Config, token string, deps appDeps) (*spec.SpecC
 	return specConfig, loader, nil
 }
 
-func applyTemplateOverride(specConfig *spec.SpecConfig, overrideTemplate string) {
+func applyTemplateOverride(specConfig *config.SpecConfig, overrideTemplate string) {
 	if overrideTemplate != "" {
 		slog.Debug("Overriding template", "template", overrideTemplate)
 		specConfig.Templates = []string{overrideTemplate}

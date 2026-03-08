@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
+	processor "github.com/lnrdll/ymr/internal/adapters/processor"
 	"github.com/lnrdll/ymr/internal/ports"
-	"github.com/lnrdll/ymr/internal/processor"
 )
 
 type outputAdapter struct{}

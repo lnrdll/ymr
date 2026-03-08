@@ -7,14 +7,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/lnrdll/ymr/internal/processor"
-	"github.com/lnrdll/ymr/internal/source"
-	"github.com/lnrdll/ymr/internal/spec"
+	processor "github.com/lnrdll/ymr/internal/adapters/processor"
+	source "github.com/lnrdll/ymr/internal/adapters/source"
+	config "github.com/lnrdll/ymr/internal/domain/config"
 )
 
 func processTemplates(
 	deps appDeps,
-	specConfig *spec.SpecConfig,
+	specConfig *config.SpecConfig,
 	loader source.SourceLoader,
 	token string,
 	targetsToRender []string,
@@ -51,7 +51,7 @@ func processTemplates(
 
 func validateTemplates(
 	deps appDeps,
-	specConfig *spec.SpecConfig,
+	specConfig *config.SpecConfig,
 	loader source.SourceLoader,
 	token string,
 	targets []string,
@@ -77,7 +77,7 @@ func validateTemplates(
 
 func walkTemplateTargets(
 	deps appDeps,
-	specConfig *spec.SpecConfig,
+	specConfig *config.SpecConfig,
 	loader source.SourceLoader,
 	token string,
 	targets []string,

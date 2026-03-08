@@ -1,6 +1,6 @@
 package app
 
-import "github.com/lnrdll/ymr/internal/processor"
+import processor "github.com/lnrdll/ymr/internal/adapters/processor"
 
 func handleOutput(outputPort OutputPort, outputs []processor.RenderedOutput, terminalOutput bool, outputDir string) error {
 	return outputPort.Write(outputs, terminalOutput, outputDir)

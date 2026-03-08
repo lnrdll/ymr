@@ -6,7 +6,7 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/lnrdll/ymr/internal/spec"
+	config "github.com/lnrdll/ymr/internal/domain/config"
 	"gopkg.in/yaml.v3"
 )
 
@@ -75,7 +75,7 @@ func buildParamsOverride(
 		maps.Copy(overrides, m)
 	}
 
-	m, err := spec.ParseCliParams(overrideParams)
+	m, err := config.ParseCliParams(overrideParams)
 	if err != nil {
 		return nil, err
 	}

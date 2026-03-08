@@ -1,9 +1,9 @@
 package adapters
 
 import (
+	source "github.com/lnrdll/ymr/internal/adapters/source"
+	config "github.com/lnrdll/ymr/internal/domain/config"
 	"github.com/lnrdll/ymr/internal/ports"
-	"github.com/lnrdll/ymr/internal/source"
-	"github.com/lnrdll/ymr/internal/spec"
 )
 
 type sourceAdapter struct{}
@@ -24,7 +24,7 @@ func (sourceAdapter) LoadTemplate(loader source.SourceLoader, templatePath strin
 	return source.LoadTemplate(loader, templatePath, token)
 }
 
-func (sourceAdapter) LoadValidations(filePath string, token string) ([]spec.Validation, error) {
+func (sourceAdapter) LoadValidations(filePath string, token string) ([]config.Validation, error) {
 	return source.LoadValidations(filePath, token)
 }
 

@@ -1,18 +1,18 @@
 package app
 
 import (
-	"github.com/lnrdll/ymr/internal/source"
-	"github.com/lnrdll/ymr/internal/spec"
+	source "github.com/lnrdll/ymr/internal/adapters/source"
+	config "github.com/lnrdll/ymr/internal/domain/config"
 )
 
 type executionPlan struct {
 	Token          string
-	SpecConfig     *spec.SpecConfig
+	SpecConfig     *config.SpecConfig
 	Loader         source.SourceLoader
 	ParamLookup    map[string]map[string]any
 	ParamsOverride map[string]any
 	Targets        []string
-	Validations    []spec.Validation
+	Validations    []config.Validation
 }
 
 func preparePlan(cfg Config) (*executionPlan, error) {
@@ -29,7 +29,7 @@ func preparePlanWithDeps(cfg Config, deps appDeps) (*executionPlan, error) {
 
 	applyTemplateOverride(specConfig, cfg.OverrideTemplate)
 
-	paramLookup := spec.BuildParamLookup(specConfig)
+	paramLookup := config.BuildParamLookup(specConfig)
 	paramsOverride, err := applyParamsOverrides(deps.source, cfg.OverrideParams, cfg.OverrideParamFiles, cfg.OverrideParamYAML, token)
 	if err != nil {
 		return nil, err

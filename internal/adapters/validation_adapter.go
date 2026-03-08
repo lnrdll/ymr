@@ -1,9 +1,9 @@
 package adapters
 
 import (
+	validation "github.com/lnrdll/ymr/internal/adapters/validation"
+	config "github.com/lnrdll/ymr/internal/domain/config"
 	"github.com/lnrdll/ymr/internal/ports"
-	"github.com/lnrdll/ymr/internal/spec"
-	"github.com/lnrdll/ymr/internal/validation"
 )
 
 type validationAdapter struct{}
@@ -12,6 +12,6 @@ func NewValidationAdapter() ports.ValidationPort {
 	return validationAdapter{}
 }
 
-func (validationAdapter) NewEngine(validations []spec.Validation) (ports.ValidationEnginePort, error) {
+func (validationAdapter) NewEngine(validations []config.Validation) (ports.ValidationEnginePort, error) {
 	return validation.NewEngine(validations)
 }

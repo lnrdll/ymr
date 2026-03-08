@@ -1,16 +1,16 @@
 package ports
 
 import (
-	"github.com/lnrdll/ymr/internal/processor"
-	"github.com/lnrdll/ymr/internal/source"
-	"github.com/lnrdll/ymr/internal/spec"
+	processor "github.com/lnrdll/ymr/internal/adapters/processor"
+	source "github.com/lnrdll/ymr/internal/adapters/source"
+	config "github.com/lnrdll/ymr/internal/domain/config"
 )
 
 type SourcePort interface {
 	NewSourceLoader(path string, token string) (source.SourceLoader, error)
 	NewLocalLoader(baseDir string) source.SourceLoader
 	LoadTemplate(loader source.SourceLoader, templatePath string, token string) ([]byte, error)
-	LoadValidations(filePath string, token string) ([]spec.Validation, error)
+	LoadValidations(filePath string, token string) ([]config.Validation, error)
 	LoadParams(filePath string, token string) (map[string]any, error)
 }
 
@@ -23,7 +23,7 @@ type ValidationEnginePort interface {
 }
 
 type ValidationPort interface {
-	NewEngine(validations []spec.Validation) (ValidationEnginePort, error)
+	NewEngine(validations []config.Validation) (ValidationEnginePort, error)
 }
 
 type OutputPort interface {

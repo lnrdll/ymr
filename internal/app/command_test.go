@@ -3,18 +3,18 @@ package app
 import (
 	"testing"
 
-	"github.com/lnrdll/ymr/internal/processor"
-	"github.com/lnrdll/ymr/internal/source"
-	"github.com/lnrdll/ymr/internal/spec"
+	processor "github.com/lnrdll/ymr/internal/adapters/processor"
+	source "github.com/lnrdll/ymr/internal/adapters/source"
+	config "github.com/lnrdll/ymr/internal/domain/config"
 )
 
 type fakeLoader struct {
-	specConfig *spec.SpecConfig
+	specConfig *config.SpecConfig
 }
 
-func (f *fakeLoader) LoadSpec(token string) (*spec.SpecConfig, error) {
+func (f *fakeLoader) LoadSpec(token string) (*config.SpecConfig, error) {
 	if f.specConfig == nil {
-		return &spec.SpecConfig{}, nil
+		return &config.SpecConfig{}, nil
 	}
 	return f.specConfig, nil
 }
@@ -28,7 +28,7 @@ type fakeSourcePort struct {
 	localLoader    source.SourceLoader
 	templateBytes  []byte
 	params         map[string]any
-	validations    []spec.Validation
+	validations    []config.Validation
 	loadTplCalls   int
 	newLoaderCalls int
 }
@@ -56,7 +56,7 @@ func (f *fakeSourcePort) LoadTemplate(loader source.SourceLoader, templatePath s
 	return f.templateBytes, nil
 }
 
-func (f *fakeSourcePort) LoadValidations(filePath string, token string) ([]spec.Validation, error) {
+func (f *fakeSourcePort) LoadValidations(filePath string, token string) ([]config.Validation, error) {
 	return f.validations, nil
 }
 
@@ -89,7 +89,7 @@ type fakeValidationPort struct {
 	engine *fakeValidationEngine
 }
 
-func (f *fakeValidationPort) NewEngine(validations []spec.Validation) (ValidationEnginePort, error) {
+func (f *fakeValidationPort) NewEngine(validations []config.Validation) (ValidationEnginePort, error) {
 	if f.engine == nil {
 		f.engine = &fakeValidationEngine{}
 	}
@@ -181,7 +181,7 @@ func TestRunCommand_UsesInjectedPorts(t *testing.T) {
 func TestValidateCommand_StrictUnmatchedTargetsStillFails(t *testing.T) {
 	t.Parallel()
 
-	loader := &fakeLoader{specConfig: &spec.SpecConfig{
+	loader := &fakeLoader{specConfig: &config.SpecConfig{
 		Templates: []string{"template.yaml"},
 		TargetIds: []string{"dev"},
 	}}
