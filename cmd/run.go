@@ -20,17 +20,8 @@ via CLI flags.`,
 		logger.Setup(cfg.Debug)
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		cfg.IsSpecFile = cmd.Flags().Changed("spec")
-
-		if !cfg.IsSpecFile {
-			// Spec-less mode
-			cfg.SpecFile = ""
-			if cfg.OverrideTemplate == "" {
-				log.Fatalf("\nError: in spec-less mode (no -s flag), --template (-T) is required.\n")
-			}
-			if len(cfg.OverrideParams) == 0 && len(cfg.OverrideParamFiles) == 0 && len(cfg.OverrideParamYAML) == 0 {
-				log.Fatalf("\nError: in spec-less mode (no -s flag), at least one of --param, --param-file, or --param-yaml is required.\n")
-			}
+		if err := prepareExecutionConfig(cmd); err != nil {
+			log.Fatalf("\nError: %v\n", err)
 		}
 
 		if err := app.NewRunCommand(cfg).Execute(); err != nil {
@@ -41,87 +32,10 @@ via CLI flags.`,
 
 func init() {
 	rootCmd.AddCommand(runCmd)
-
-	runCmd.PersistentFlags().StringVarP(
-		&cfg.SpecFile,
-		"spec",
-		"s",
-		"",
-		"Path to a spec file or directory. If used, this flag cannot be empty. (use '.' for current directory)",
-	)
-
-	runCmd.PersistentFlags().StringVarP(
-		&cfg.OverrideTemplate,
-		"template",
-		"T",
-		"",
-		"A single template file/URL. Required in spec-less mode",
-	)
-
-	runCmd.PersistentFlags().StringVarP(
-		&cfg.OutputDir,
-		"output",
-		"o",
-		"",
-		"Output directory for rendered files (use '-' for stdout)",
-	)
-
-	runCmd.PersistentFlags().StringSliceVarP(
-		&cfg.OverrideParams,
-		"param",
-		"p",
-		nil,
-		"Override a parameter (key=value). Can be used multiple times",
-	)
-
-	runCmd.PersistentFlags().StringSliceVar(
-		&cfg.OverrideParamYAML,
-		"param-yaml",
-		nil,
-		"Override parameters from an inline YAML/JSON mapping. Can be used multiple times",
-	)
-
-	runCmd.PersistentFlags().StringSliceVar(
-		&cfg.OverrideParamFiles,
-		"param-file",
-		nil,
-		"Override parameters from a YAML/JSON file/URL. Can be used multiple times",
-	)
-
-	runCmd.PersistentFlags().StringSliceVarP(
-		&cfg.OverrideTargets,
-		"target",
-		"t",
-		nil,
+	registerSharedFlags(
+		runCmd,
+		true,
 		"Override which targets to render. Can be used multiple times",
-	)
-
-	runCmd.PersistentFlags().StringVar(
-		&cfg.GithubToken,
-		"token",
-		"",
-		"GitHub token for accessing private repositories (or use GITHUB_TOKEN env var)",
-	)
-
-	runCmd.PersistentFlags().StringVar(
-		&cfg.ValidationFile,
-		"validation",
-		"",
-		"Path to a validation file. If provided, this will override any validations in the spec file",
-	)
-
-	runCmd.PersistentFlags().BoolVarP(
-		&cfg.Debug,
-		"debug",
-		"d",
-		false,
-		"Enable debug logging",
-	)
-
-	runCmd.PersistentFlags().BoolVar(
-		&cfg.Strict,
-		"strict",
-		false,
 		"Fail if any template/target render step errors",
 	)
 
