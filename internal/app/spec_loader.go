@@ -8,10 +8,6 @@ import (
 	"github.com/lnrdll/ymr/internal/spec"
 )
 
-func loadSpecConfig(cfg Config, token string) (*spec.SpecConfig, source.SourceLoader, error) {
-	return loadSpecConfigWithDeps(cfg, token, newDefaultDeps())
-}
-
 func loadSpecConfigWithDeps(cfg Config, token string, deps appDeps) (*spec.SpecConfig, source.SourceLoader, error) {
 	if cfg.IsSpecFile {
 		slog.Debug("Using source loader", "source", cfg.SpecFile)
