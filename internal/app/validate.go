@@ -1,5 +1,6 @@
 package app
 
 func Validate(cfg Config) error {
-	return NewValidateCommand(cfg).Execute()
+	cfg.ValidateOnly = true
+	return NewRunCommand(cfg).Execute()
 }

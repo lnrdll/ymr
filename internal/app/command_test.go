@@ -178,7 +178,7 @@ func TestRunCommand_UsesInjectedPorts(t *testing.T) {
 	}
 }
 
-func TestValidateCommand_StrictUnmatchedTargetsStillFails(t *testing.T) {
+func TestRunCommand_ValidateOnly_StrictUnmatchedTargetsStillFails(t *testing.T) {
 	t.Parallel()
 
 	loader := &fakeLoader{specConfig: &config.SpecConfig{
@@ -188,12 +188,13 @@ func TestValidateCommand_StrictUnmatchedTargetsStillFails(t *testing.T) {
 
 	fSource := &fakeSourcePort{newLoader: loader}
 
-	cmd := &validateCommand{
+	cmd := &runCommand{
 		cfg: Config{
 			IsSpecFile:      true,
 			SpecFile:        "spec.yaml",
 			OverrideTargets: []string{"prod"},
 			Strict:          true,
+			ValidateOnly:    true,
 		},
 		deps: appDeps{
 			source:     fSource,
