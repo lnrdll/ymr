@@ -12,15 +12,15 @@ func NewSourceAdapter() ports.SourcePort {
 	return sourceAdapter{}
 }
 
-func (sourceAdapter) NewSourceLoader(path string, token string) (source.SourceLoader, error) {
+func (sourceAdapter) NewSourceLoader(path string, token string) (ports.SourceLoader, error) {
 	return source.NewSourceLoader(path, token)
 }
 
-func (sourceAdapter) NewLocalLoader(baseDir string) source.SourceLoader {
+func (sourceAdapter) NewLocalLoader(baseDir string) ports.SourceLoader {
 	return &source.LocalLoader{BaseDir: baseDir, SpecPath: ""}
 }
 
-func (sourceAdapter) LoadTemplate(loader source.SourceLoader, templatePath string, token string) ([]byte, error) {
+func (sourceAdapter) LoadTemplate(loader ports.SourceLoader, templatePath string, token string) ([]byte, error) {
 	return source.LoadTemplate(loader, templatePath, token)
 }
 

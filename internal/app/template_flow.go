@@ -7,23 +7,22 @@ import (
 	"path/filepath"
 	"strings"
 
-	processor "github.com/lnrdll/ymr/internal/adapters/processor"
-	source "github.com/lnrdll/ymr/internal/adapters/source"
 	config "github.com/lnrdll/ymr/internal/domain/config"
+	"github.com/lnrdll/ymr/internal/ports"
 )
 
 func processTemplates(
 	deps appDeps,
 	specConfig *config.SpecConfig,
-	loader source.SourceLoader,
+	loader ports.SourceLoader,
 	token string,
 	targetsToRender []string,
 	paramLookup map[string]map[string]any,
 	paramsOverride map[string]any,
 	overrideTemplate string,
 	strict bool,
-) ([]processor.RenderedOutput, error) {
-	allOutputs := []processor.RenderedOutput{}
+) ([]ports.RenderedOutput, error) {
+	allOutputs := []ports.RenderedOutput{}
 
 	err := walkTemplateTargets(
 		deps,
@@ -38,7 +37,7 @@ func processTemplates(
 		true,
 		func(templatePath string, templateNameOnly string, templateExt string, targetId string, renderedYaml string) {
 			outputFileName := fmt.Sprintf("%s-%s%s", targetId, templateNameOnly, templateExt)
-			allOutputs = append(allOutputs, processor.RenderedOutput{
+			allOutputs = append(allOutputs, ports.RenderedOutput{
 				TargetFile:   outputFileName,
 				TemplateUsed: templatePath,
 				Content:      renderedYaml,
@@ -52,7 +51,7 @@ func processTemplates(
 func validateTemplates(
 	deps appDeps,
 	specConfig *config.SpecConfig,
-	loader source.SourceLoader,
+	loader ports.SourceLoader,
 	token string,
 	targets []string,
 	paramLookup map[string]map[string]any,
@@ -78,7 +77,7 @@ func validateTemplates(
 func walkTemplateTargets(
 	deps appDeps,
 	specConfig *config.SpecConfig,
-	loader source.SourceLoader,
+	loader ports.SourceLoader,
 	token string,
 	targets []string,
 	paramLookup map[string]map[string]any,
@@ -93,7 +92,16 @@ func walkTemplateTargets(
 	for _, templatePath := range specConfig.Templates {
 		loaderToUse := loader
 		if overrideTemplate != "" {
-			cwd, _ := deps.runtime.Getwd()
+			cwd, err := deps.runtime.Getwd()
+			if err != nil {
+				if strict {
+					errs = append(errs, fmt.Errorf("resolving working directory: %w", err))
+				}
+				if !strict || warnOnStrict {
+					slog.Warn("Skipping template due to working directory error", "template", templatePath, "error", err)
+				}
+				continue
+			}
 			loaderToUse = deps.source.NewLocalLoader(cwd)
 		}
 

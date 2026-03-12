@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"log/slog"
 
-	source "github.com/lnrdll/ymr/internal/adapters/source"
 	config "github.com/lnrdll/ymr/internal/domain/config"
+	"github.com/lnrdll/ymr/internal/ports"
 )
 
-func loadSpecConfigWithDeps(cfg Config, token string, deps appDeps) (*config.SpecConfig, source.SourceLoader, error) {
+func loadSpecConfigWithDeps(cfg Config, token string, deps appDeps) (*config.SpecConfig, ports.SourceLoader, error) {
 	if cfg.IsSpecFile {
 		slog.Debug("Using source loader", "source", cfg.SpecFile)
 
@@ -36,7 +36,10 @@ func loadSpecConfigWithDeps(cfg Config, token string, deps appDeps) (*config.Spe
 		Parameters: []config.ParamSet{},
 	}
 
-	cwd, _ := deps.runtime.Getwd()
+	cwd, err := deps.runtime.Getwd()
+	if err != nil {
+		return nil, nil, fmt.Errorf("resolving working directory: %w", err)
+	}
 	loader := deps.source.NewLocalLoader(cwd)
 
 	slog.Debug("Running in spec-less mode", "loader", loader)

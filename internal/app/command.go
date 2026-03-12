@@ -16,6 +16,12 @@ func NewRunCommand(cfg Config) Command {
 }
 
 func (c *runCommand) Execute() error {
+	validatedCfg, err := validateRunConfig(c.cfg)
+	if err != nil {
+		return err
+	}
+	c.cfg = validatedCfg
+
 	outputDir, terminalOutput := prepareOutputDir(c.cfg.OutputDir)
 
 	plan, err := preparePlanWithDeps(c.cfg, c.deps)

@@ -1,14 +1,14 @@
 package app
 
 import (
-	source "github.com/lnrdll/ymr/internal/adapters/source"
 	config "github.com/lnrdll/ymr/internal/domain/config"
+	"github.com/lnrdll/ymr/internal/ports"
 )
 
 type executionPlan struct {
 	Token          string
 	SpecConfig     *config.SpecConfig
-	Loader         source.SourceLoader
+	Loader         ports.SourceLoader
 	ParamLookup    map[string]map[string]any
 	ParamsOverride map[string]any
 	Targets        []string

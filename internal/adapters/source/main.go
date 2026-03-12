@@ -8,16 +8,12 @@ import (
 	"path/filepath"
 
 	config "github.com/lnrdll/ymr/internal/domain/config"
+	"github.com/lnrdll/ymr/internal/ports"
 
 	"gopkg.in/yaml.v3"
 )
 
-type SourceLoader interface {
-	LoadSpec(token string) (*config.SpecConfig, error)
-	GetBasePath() string
-}
-
-func NewSourceLoader(path string, token string) (SourceLoader, error) {
+func NewSourceLoader(path string, token string) (ports.SourceLoader, error) {
 	slog.Debug("new source loader", "path", path)
 
 	if githubLoader, ok := ParseGitHubURL(path); ok && githubLoader.Ref != "" {
@@ -49,7 +45,7 @@ func NewSourceLoader(path string, token string) (SourceLoader, error) {
 	return nil, fmt.Errorf("could not determine source type for path: %s", path)
 }
 
-func LoadTemplate(loader SourceLoader, templatePath string, token string) ([]byte, error) {
+func LoadTemplate(loader ports.SourceLoader, templatePath string, token string) ([]byte, error) {
 	slog.Debug("Loading template", "templatePath", templatePath)
 
 	if isRemotePath(templatePath) {

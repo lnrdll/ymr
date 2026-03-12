@@ -3,9 +3,8 @@ package app
 import (
 	"testing"
 
-	processor "github.com/lnrdll/ymr/internal/adapters/processor"
-	source "github.com/lnrdll/ymr/internal/adapters/source"
 	config "github.com/lnrdll/ymr/internal/domain/config"
+	"github.com/lnrdll/ymr/internal/ports"
 )
 
 type fakeLoader struct {
@@ -24,8 +23,8 @@ func (f *fakeLoader) GetBasePath() string {
 }
 
 type fakeSourcePort struct {
-	newLoader      source.SourceLoader
-	localLoader    source.SourceLoader
+	newLoader      ports.SourceLoader
+	localLoader    ports.SourceLoader
 	templateBytes  []byte
 	params         map[string]any
 	validations    []config.Validation
@@ -33,7 +32,7 @@ type fakeSourcePort struct {
 	newLoaderCalls int
 }
 
-func (f *fakeSourcePort) NewSourceLoader(path string, token string) (source.SourceLoader, error) {
+func (f *fakeSourcePort) NewSourceLoader(path string, token string) (ports.SourceLoader, error) {
 	f.newLoaderCalls++
 	if f.newLoader == nil {
 		return &fakeLoader{}, nil
@@ -41,14 +40,14 @@ func (f *fakeSourcePort) NewSourceLoader(path string, token string) (source.Sour
 	return f.newLoader, nil
 }
 
-func (f *fakeSourcePort) NewLocalLoader(baseDir string) source.SourceLoader {
+func (f *fakeSourcePort) NewLocalLoader(baseDir string) ports.SourceLoader {
 	if f.localLoader == nil {
 		return &fakeLoader{}
 	}
 	return f.localLoader
 }
 
-func (f *fakeSourcePort) LoadTemplate(loader source.SourceLoader, templatePath string, token string) ([]byte, error) {
+func (f *fakeSourcePort) LoadTemplate(loader ports.SourceLoader, templatePath string, token string) ([]byte, error) {
 	f.loadTplCalls++
 	if f.templateBytes == nil {
 		return []byte("x: y\n"), nil
@@ -98,13 +97,13 @@ func (f *fakeValidationPort) NewEngine(validations []config.Validation) (Validat
 
 type fakeOutputPort struct {
 	calls         int
-	outputs       []processor.RenderedOutput
+	outputs       []ports.RenderedOutput
 	terminalOut   bool
 	outputDir     string
 	returnedError error
 }
 
-func (f *fakeOutputPort) Write(outputs []processor.RenderedOutput, terminalOutput bool, outputDir string) error {
+func (f *fakeOutputPort) Write(outputs []ports.RenderedOutput, terminalOutput bool, outputDir string) error {
 	f.calls++
 	f.outputs = outputs
 	f.terminalOut = terminalOutput

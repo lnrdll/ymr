@@ -170,3 +170,41 @@ func TestResolveParamsForTarget_DoesNotMutateLookup(t *testing.T) {
 		t.Fatalf("expected lookup to stay immutable, got %#v", lookup["dev"])
 	}
 }
+
+func TestRun_SpecLess_FailsWithoutTemplate(t *testing.T) {
+	t.Parallel()
+
+	cfg := Config{
+		IsSpecFile:      false,
+		OverrideParams:  []string{"name=myapp"},
+		OverrideTargets: []string{"dev"},
+	}
+
+	err := Run(cfg)
+	if err == nil {
+		t.Fatalf("expected error for missing template in spec-less mode")
+	}
+}
+
+func TestRun_SpecLess_FailsWithoutParams(t *testing.T) {
+	t.Parallel()
+
+	workDir := t.TempDir()
+	templatePath := filepath.Join(workDir, "t.yaml")
+
+	err := os.WriteFile(templatePath, []byte("key: v\n"), 0644)
+	if err != nil {
+		t.Fatalf("write template: %v", err)
+	}
+
+	cfg := Config{
+		IsSpecFile:       false,
+		OverrideTemplate: templatePath,
+		OverrideTargets:  []string{"dev"},
+	}
+
+	err = Run(cfg)
+	if err == nil {
+		t.Fatalf("expected error for missing params in spec-less mode")
+	}
+}

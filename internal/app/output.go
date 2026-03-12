@@ -1,8 +1,8 @@
 package app
 
-import processor "github.com/lnrdll/ymr/internal/adapters/processor"
+import "github.com/lnrdll/ymr/internal/ports"
 
-func handleOutput(outputPort OutputPort, outputs []processor.RenderedOutput, terminalOutput bool, outputDir string) error {
+func handleOutput(outputPort OutputPort, outputs []ports.RenderedOutput, terminalOutput bool, outputDir string) error {
 	return outputPort.Write(outputs, terminalOutput, outputDir)
 }
 

@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	processor "github.com/lnrdll/ymr/internal/adapters/processor"
 	"github.com/lnrdll/ymr/internal/ports"
 )
 
@@ -16,7 +15,7 @@ func NewOutputAdapter() ports.OutputPort {
 	return outputAdapter{}
 }
 
-func (outputAdapter) Write(outputs []processor.RenderedOutput, terminalOutput bool, outputDir string) error {
+func (outputAdapter) Write(outputs []ports.RenderedOutput, terminalOutput bool, outputDir string) error {
 	if terminalOutput {
 		for _, output := range outputs {
 			fmt.Print(output.Content)

@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"log"
-
 	"github.com/lnrdll/ymr/internal/app"
 	"github.com/lnrdll/ymr/internal/logger"
 
@@ -19,21 +17,9 @@ via CLI flags.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		logger.Setup(cfg.Debug)
 	},
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg.IsSpecFile = cmd.Flags().Changed("spec")
-		if !cfg.IsSpecFile {
-			cfg.SpecFile = ""
-			if cfg.OverrideTemplate == "" {
-				log.Fatalf("\nError: in spec-less mode (no -s flag), --template (-T) is required\n")
-			}
-			if len(cfg.OverrideParams) == 0 && len(cfg.OverrideParamFiles) == 0 && len(cfg.OverrideParamYAML) == 0 {
-				log.Fatalf("\nError: in spec-less mode (no -s flag), at least one of --param, --param-file, or --param-yaml is required\n")
-			}
-		}
-
-		if err := app.NewRunCommand(cfg).Execute(); err != nil {
-			log.Fatalf("Error: %v\n", err)
-		}
+		return app.NewRunCommand(cfg).Execute()
 	},
 }
 
