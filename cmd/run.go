@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/lnrdll/ymr/internal/app"
@@ -21,8 +20,15 @@ via CLI flags.`,
 		logger.Setup(cfg.Debug)
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := prepareExecutionConfig(cmd); err != nil {
-			log.Fatalf("\nError: %v\n", err)
+		cfg.IsSpecFile = cmd.Flags().Changed("spec")
+		if !cfg.IsSpecFile {
+			cfg.SpecFile = ""
+			if cfg.OverrideTemplate == "" {
+				log.Fatalf("\nError: in spec-less mode (no -s flag), --template (-T) is required\n")
+			}
+			if len(cfg.OverrideParams) == 0 && len(cfg.OverrideParamFiles) == 0 && len(cfg.OverrideParamYAML) == 0 {
+				log.Fatalf("\nError: in spec-less mode (no -s flag), at least one of --param, --param-file, or --param-yaml is required\n")
+			}
 		}
 
 		if err := app.NewRunCommand(cfg).Execute(); err != nil {
@@ -33,40 +39,8 @@ via CLI flags.`,
 
 func init() {
 	rootCmd.AddCommand(runCmd)
-	runCmd.PersistentFlags().BoolVar(
-		&cfg.ValidateOnly,
-		"validate",
-		false,
-		"Validate spec/params/templates without writing output",
-	)
-	registerSharedFlags(
-		runCmd,
-		true,
-		"Override which targets to render. Can be used multiple times",
-		"Fail if any template/target render step errors",
-	)
 
-}
-
-func prepareExecutionConfig(cmd *cobra.Command) error {
-	cfg.IsSpecFile = cmd.Flags().Changed("spec")
-	if cfg.IsSpecFile {
-		return nil
-	}
-
-	cfg.SpecFile = ""
-	if cfg.OverrideTemplate == "" {
-		return fmt.Errorf("in spec-less mode (no -s flag), --template (-T) is required")
-	}
-	if len(cfg.OverrideParams) == 0 && len(cfg.OverrideParamFiles) == 0 && len(cfg.OverrideParamYAML) == 0 {
-		return fmt.Errorf("in spec-less mode (no -s flag), at least one of --param, --param-file, or --param-yaml is required")
-	}
-
-	return nil
-}
-
-func registerSharedFlags(command *cobra.Command, includeOutput bool, targetHelp string, strictHelp string) {
-	command.PersistentFlags().StringVarP(
+	runCmd.PersistentFlags().StringVarP(
 		&cfg.SpecFile,
 		"spec",
 		"s",
@@ -74,7 +48,7 @@ func registerSharedFlags(command *cobra.Command, includeOutput bool, targetHelp 
 		"Path to a spec file or directory. If used, this flag cannot be empty. (use '.' for current directory)",
 	)
 
-	command.PersistentFlags().StringVarP(
+	runCmd.PersistentFlags().StringVarP(
 		&cfg.OverrideTemplate,
 		"template",
 		"T",
@@ -82,17 +56,15 @@ func registerSharedFlags(command *cobra.Command, includeOutput bool, targetHelp 
 		"A single template file/URL. Required in spec-less mode",
 	)
 
-	if includeOutput {
-		command.PersistentFlags().StringVarP(
-			&cfg.OutputDir,
-			"output",
-			"o",
-			"",
-			"Output directory for rendered files (use '-' for stdout)",
-		)
-	}
+	runCmd.PersistentFlags().StringVarP(
+		&cfg.OutputDir,
+		"output",
+		"o",
+		"",
+		"Output directory for rendered files (use '-' for stdout)",
+	)
 
-	command.PersistentFlags().StringSliceVarP(
+	runCmd.PersistentFlags().StringSliceVarP(
 		&cfg.OverrideParams,
 		"param",
 		"p",
@@ -100,43 +72,43 @@ func registerSharedFlags(command *cobra.Command, includeOutput bool, targetHelp 
 		"Override a parameter (key=value). Can be used multiple times",
 	)
 
-	command.PersistentFlags().StringSliceVar(
+	runCmd.PersistentFlags().StringSliceVar(
 		&cfg.OverrideParamYAML,
 		"param-yaml",
 		nil,
 		"Override parameters from an inline YAML/JSON mapping. Can be used multiple times",
 	)
 
-	command.PersistentFlags().StringSliceVar(
+	runCmd.PersistentFlags().StringSliceVar(
 		&cfg.OverrideParamFiles,
 		"param-file",
 		nil,
 		"Override parameters from a YAML/JSON file/URL. Can be used multiple times",
 	)
 
-	command.PersistentFlags().StringSliceVarP(
+	runCmd.PersistentFlags().StringSliceVarP(
 		&cfg.OverrideTargets,
 		"target",
 		"t",
 		nil,
-		targetHelp,
+		"Override which targets to render. Can be used multiple times",
 	)
 
-	command.PersistentFlags().StringVar(
+	runCmd.PersistentFlags().StringVar(
 		&cfg.GithubToken,
 		"token",
 		"",
 		"GitHub token for accessing private repositories (or use GITHUB_TOKEN env var)",
 	)
 
-	command.PersistentFlags().StringVar(
+	runCmd.PersistentFlags().StringVar(
 		&cfg.ValidationFile,
 		"validation",
 		"",
 		"Path to a validation file. If provided, this will override any validations in the spec file",
 	)
 
-	command.PersistentFlags().BoolVarP(
+	runCmd.PersistentFlags().BoolVarP(
 		&cfg.Debug,
 		"debug",
 		"d",
@@ -144,10 +116,17 @@ func registerSharedFlags(command *cobra.Command, includeOutput bool, targetHelp 
 		"Enable debug logging",
 	)
 
-	command.PersistentFlags().BoolVar(
+	runCmd.PersistentFlags().BoolVar(
 		&cfg.Strict,
 		"strict",
 		false,
-		strictHelp,
+		"Fail if any template/target render step errors",
+	)
+
+	runCmd.PersistentFlags().BoolVar(
+		&cfg.ValidateOnly,
+		"validate",
+		false,
+		"Validate spec/params/templates without writing output",
 	)
 }
