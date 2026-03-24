@@ -70,7 +70,7 @@ type fakeProcessorPort struct {
 	calls int
 }
 
-func (f *fakeProcessorPort) ProcessContent(templateContent []byte, params map[string]any) (string, error) {
+func (f *fakeProcessorPort) ProcessContent(templateContent []byte, params map[string]any, strict bool) (string, error) {
 	f.calls++
 	return "rendered", nil
 }

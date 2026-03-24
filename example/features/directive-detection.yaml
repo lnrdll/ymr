@@ -1,0 +1,6 @@
+# The next line includes "from-param" but does not start with the directive,
+# so it should NOT be applied.
+name: default # note from-param: {{ .item }}
+
+# This line uses the real directive and will be applied.
+real: default # from-param: {{ .item }}

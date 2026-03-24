@@ -123,7 +123,7 @@ func walkTemplateTargets(
 		for _, targetId := range targets {
 			params := resolveParamsForTarget(paramLookup, targetId, paramsOverride)
 
-			renderedYaml, err := deps.processor.ProcessContent(content, params)
+			renderedYaml, err := deps.processor.ProcessContent(content, params, strict)
 			if err != nil {
 				if strict {
 					errs = append(errs, fmt.Errorf("processing template '%s' for target '%s': %w", templatePath, targetId, err))

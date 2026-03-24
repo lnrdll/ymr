@@ -13,7 +13,7 @@ type SourcePort interface {
 }
 
 type ProcessorPort interface {
-	ProcessContent(templateContent []byte, params map[string]any) (string, error)
+	ProcessContent(templateContent []byte, params map[string]any, strict bool) (string, error)
 }
 
 type ValidationEnginePort interface {

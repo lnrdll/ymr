@@ -1,0 +1,3 @@
+- rule: "params.replicas >= 2"
+  message: "replicas must be >= 2"
+  targetId: ["dev", "prd"]

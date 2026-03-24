@@ -1,0 +1,48 @@
+templates:
+  - nested.yaml
+  - merge.yaml
+  - merge-seq.yaml
+  - types.yaml
+  - placements.yaml
+  - multi-doc.yaml
+  - directive-detection.yaml
+
+targetIds:
+  - dev
+  - prd
+
+parameters:
+  - targetId: ["dev", "prd"]
+    values:
+      app:
+        image:
+          tag: "1.2.3"
+        ports: [80, 443]
+      item: "x"
+      name: "from-spec"
+      replicas: 3
+      enabled: true
+      ratio: 1.5
+      maybe: ~
+
+  - targetId: ["dev"]
+    values:
+      commonLabels:
+        environment: dev
+        version: v1
+      extraPorts: [443]
+
+  - targetId: ["prd"]
+    values:
+      commonLabels:
+        environment: prd
+        version: v1
+      extraPorts: [8443]
+
+validations:
+  - rule: "params.replicas >= 1"
+    message: "replicas must be >= 1"
+    targetId: ["dev", "prd"]
+  - rule: "params.ratio > 0.0"
+    message: "ratio must be > 0"
+    targetId: ["dev", "prd"]

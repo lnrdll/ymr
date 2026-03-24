@@ -41,6 +41,8 @@ func ParseCliParams(params []string) (map[string]any, error) {
 			overrides[key] = i
 		} else if b, err := strconv.ParseBool(val); err == nil {
 			overrides[key] = b
+		} else if f, err := strconv.ParseFloat(val, 64); err == nil {
+			overrides[key] = f
 		} else {
 			overrides[key] = val
 		}

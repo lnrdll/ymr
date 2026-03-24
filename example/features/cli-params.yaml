@@ -1,0 +1,4 @@
+replicas: 1 # from-param: {{ .replicas }}
+enabled: false # from-param: {{ .enabled }}
+ratio: 0.0 # from-param: {{ .ratio }}
+name: default # from-param: {{ .name }}

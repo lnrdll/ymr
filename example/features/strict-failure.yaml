@@ -1,0 +1,5 @@
+# In non-strict mode, missing keys or template errors preserve the default value.
+# In strict mode, these are errors.
+
+missingKey: default # from-param: {{ .missing }}
+templateError: default # from-param: {{ .name | replace }}

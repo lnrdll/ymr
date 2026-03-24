@@ -252,7 +252,7 @@ ymr run [flags]
 *   `-t`, `--target <id>`: Override which targets to render. Can be used multiple times.
 *   `--token <token>`: GitHub token for accessing private repositories (or use `GITHUB_TOKEN` environment variable).
 *   `--validation <path>`: Path to a policy file. If provided, this will override any validations in the spec file.
-*   `--strict`: Fail the run if any template/target render step errors. By default, `ymr` runs in best-effort mode and skips failed templates/targets.
+*   `--strict`: Fail the run if any template/target render step errors (including missing `from-param` keys and directive template execution errors). By default, `ymr` runs in best-effort mode: directive failures preserve defaults, and failed templates/targets are skipped.
 *   `--debug`: Enable debug logging.
 
 **Example `ymr run` usage:**
@@ -298,7 +298,7 @@ Validates a spec (or a single template in spec-less mode) without writing output
 # Validate a spec directory
 ymr validate -s example/k8s
 
-# Validate with strict mode (fail on any template load/parse error)
+# Validate with strict mode (fail on any template load/parse/process error)
 ymr validate -s example/k8s --strict
 ```
 
@@ -363,6 +363,7 @@ Templates may contain multiple YAML documents separated by `---`; `ymr` processe
 The [`example`](./example) directory contains a few examples of how to use `ymr`.
 
 - [`simple`](./example/simple): A simple example of how to use `ymr` with a single template and a single target.
+- [`features`](./example/features): A focused set of examples covering nested-path directives, deterministic merges, strict-mode directive errors, and CLI float params.
 - [`k8s`](./example/k8s): A more complex example of how to use `ymr` to generate Kubernetes manifests for multiple targets.
 - [`gcp-cloud-run`](./example/gcp-cloud-run): An example of how to use `ymr` to generate a GCP Cloud Run service definition for multiple targets.
 - [`docker-composer`](./example/docker-composer): An example of how to use `ymr` to generate a Docker Compose file for multiple targets.

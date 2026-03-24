@@ -1,0 +1,5 @@
+name: # from-param: {{ .item }}
+  default
+
+items:
+  - default # from-param: {{ .item }}

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Example
+spec:
+  imageTag: "default" # from-param: {{ .app.image.tag }}
+  ports: [0] # from-param: {{ .app.ports }}
+  firstPort: 0 # from-param: {{ .app.ports.0 }}
+  ratio: 0.0 # from-param: {{ .ratio }}

@@ -87,6 +87,57 @@ validations: []
 	}
 }
 
+func TestRun_Strict_FailsOnMissingParamInDirective(t *testing.T) {
+	t.Parallel()
+
+	workDir := t.TempDir()
+	templatePath := filepath.Join(workDir, "configmap.yaml")
+	outDirNonStrict := filepath.Join(workDir, "out-nonstrict")
+	outDirStrict := filepath.Join(workDir, "out-strict")
+
+	err := os.WriteFile(templatePath, []byte(strings.TrimSpace(`
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: default # from-param: {{ .missing }}
+`)+"\n"), 0644)
+	if err != nil {
+		t.Fatalf("write template: %v", err)
+	}
+
+	baseCfg := Config{
+		IsSpecFile:       false,
+		OverrideTemplate: templatePath,
+		OverrideParams:   []string{"name=myapp"},
+		OverrideTargets:  []string{"dev"},
+		OutputDir:        outDirNonStrict,
+	}
+
+	if err := Run(baseCfg); err != nil {
+		t.Fatalf("expected non-strict run to succeed, got: %v", err)
+	}
+
+	outFile := filepath.Join(outDirNonStrict, "dev-configmap.yaml")
+	b, err := os.ReadFile(outFile)
+	if err != nil {
+		t.Fatalf("read output %s: %v", outFile, err)
+	}
+	out := string(b)
+	if strings.Contains(out, "from-param") {
+		t.Fatalf("expected directives removed from output; got:\n%s", out)
+	}
+	if !strings.Contains(out, "name: default") {
+		t.Fatalf("expected default preserved; got:\n%s", out)
+	}
+
+	strictCfg := baseCfg
+	strictCfg.Strict = true
+	strictCfg.OutputDir = outDirStrict
+	if err := Run(strictCfg); err == nil {
+		t.Fatalf("expected strict run to fail")
+	}
+}
+
 func TestRun_SpecLess_ParamFile_SupportsMapsAndLists(t *testing.T) {
 	t.Parallel()
 

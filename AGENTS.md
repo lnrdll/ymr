@@ -78,17 +78,95 @@ Merge behavior:
 - For sequences: `from-param-merge` appends items.
 - For mappings: `from-param-merge` appends key/value pairs.
 
-## Source Loading
+=== My Engineering preferences ===
 
-`--spec` accepts:
+# Overall
 
-- Local directory (loads `<dir>/spec.yaml`)
-- Local file (loads that file)
-- HTTP(S) URL (loads that URL)
-- GitHub URL (supports raw fetch via `raw.githubusercontent.com`)
+## Think before coding
 
-Use `--token` or `GITHUB_TOKEN` for private GitHub sources.
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
 
-## Tests
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them -- don't pick silently.
+- If a simpler approach exists, say so. Push back when warratend.
+- If something is unclear, stop. Name what's confusing. Ask.
 
-- Unit tests live in `internal/processor/main_test.go`.
+## Simplicity first
+
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- DRY is important -- flag repetition aggressively.
+- I want to code that's "engineered enough" -- not under-engineered (fragile, hacky) and not over-engineered (premature abstraction, unnecessary complexity).
+- I err on the side of handling more edge cases, not fewer; throughfulness > speed.
+- If you write 200 lines and it could be 50, rewrite it.
+
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+## Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it -- don't delete it.
+
+When your changes create orphans:
+- Remove imports/variables/functions/classes that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+
+## Goal-Driven Execution
+
+**Define succeess criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+- "Add validation" -> "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" -> "Write a test that reproduces it, then make it pass"
+- "Refactor X" -> "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+
+```
+1. [Step] -> verify: [check]
+2. [Step] -> verify: [check]
+3. [Step] -> verify: [check]
+```
+
+# Architecture
+
+- Overall system design and component boundaries.
+- Dependency graph and coupling concerns.
+- Data flow patterns and potential bottlenecks.
+- Scaling characteristics and single point of failure.
+- Security architecture (auth, data access, api boundaries).
+- Bias toward explicit over clever.
+
+# Code quality
+
+- Code organization and module structure.
+- DRY violations -- be aggressive here.
+- Error handling patterns and missing edge cases (call these out explicity).
+- Technical debt hotspots.
+
+# Testing
+
+- Well-tested code is non-negotiable; I'd rather have too many tests than too few.
+- Test coverage gaps (unit, integration, e2e).
+- Test quality and assertion strength.
+- Missing edge case coverage--be thorough.
+- Untested failure modes and error paths.
+- Once a working task case is implement, provide a justification for modifying the case.
+
+# Perfomance
+
+- N+1 queries and database access patterns.
+- Memory-usage concerns.
+- Caching opportunities.
+- Slow or high-complexity code paths.

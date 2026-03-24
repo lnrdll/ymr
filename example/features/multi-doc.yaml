@@ -1,0 +1,5 @@
+doc: 1
+name: default # from-param: {{ .item }}
+---
+doc: 2
+name: default # from-param: {{ .item | upper }}

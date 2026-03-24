@@ -1,0 +1,4 @@
+metadata:
+  labels: # from-param-merge: {{ .commonLabels }}
+    app: my-app
+    environment: dev

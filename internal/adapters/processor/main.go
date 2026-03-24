@@ -6,16 +6,17 @@ import (
 	"io"
 	"log/slog"
 	"regexp"
+	"strconv"
 	"strings"
 	"text/template"
 
 	"gopkg.in/yaml.v3"
 )
 
-var paramCommentRegex = regexp.MustCompile(`(from-param|from-param-merge):\s*(.+)`)
+var paramCommentRegex = regexp.MustCompile(`^\s*(?:#\s*)?(from-param|from-param-merge):\s*(.+)\s*$`)
 var simpleTemplateRegex = regexp.MustCompile(`^\s*{{\s*\.([a-zA-Z0-9_.-]+)\s*}}\s*$`)
 
-func ProcessContent(templateContent []byte, params map[string]any) (string, error) {
+func ProcessContent(templateContent []byte, params map[string]any, strict bool) (string, error) {
 	if len(bytes.TrimSpace(templateContent)) == 0 {
 		return "", nil
 	}
@@ -36,7 +37,9 @@ func ProcessContent(templateContent []byte, params map[string]any) (string, erro
 	}
 
 	for i := range docs {
-		traverse(&docs[i], params)
+		if err := traverse(&docs[i], params, strict); err != nil {
+			return "", err
+		}
 	}
 
 	var out bytes.Buffer
@@ -72,13 +75,56 @@ func errorsIsEOF(err error) bool {
 	return err == io.EOF
 }
 
-func traverse(node *yaml.Node, params map[string]any) {
+func resolveParam(params map[string]any, key string) (any, bool) {
+	// Back-compat: allow literal keys with dots.
+	if v, ok := params[key]; ok {
+		return v, true
+	}
+
+	if !strings.Contains(key, ".") {
+		return nil, false
+	}
+
+	segments := strings.Split(key, ".")
+	var cur any = params
+
+	for _, seg := range segments {
+		switch typed := cur.(type) {
+		case map[string]any:
+			v, ok := typed[seg]
+			if !ok {
+				return nil, false
+			}
+			cur = v
+		case map[any]any:
+			v, ok := typed[seg]
+			if !ok {
+				return nil, false
+			}
+			cur = v
+		case []any:
+			idx, err := strconv.Atoi(seg)
+			if err != nil || idx < 0 || idx >= len(typed) {
+				return nil, false
+			}
+			cur = typed[idx]
+		default:
+			return nil, false
+		}
+	}
+
+	return cur, true
+}
+
+func traverse(node *yaml.Node, params map[string]any, strict bool) error {
 	slog.Debug("Traversing node", "kind", node.Kind, "tag", node.Tag)
 
 	switch node.Kind {
 	case yaml.DocumentNode:
 		for _, child := range node.Content {
-			traverse(child, params)
+			if err := traverse(child, params, strict); err != nil {
+				return err
+			}
 		}
 
 	case yaml.MappingNode:
@@ -89,7 +135,9 @@ func traverse(node *yaml.Node, params map[string]any) {
 			if keyNode.LineComment != "" {
 				directive, rawString := parseParamFromComment(keyNode.LineComment)
 				if rawString != "" {
-					processDirective(valueNode, directive, rawString, params)
+					if err := processDirective(valueNode, directive, rawString, params, strict); err != nil {
+						return fmt.Errorf("directive %q failed at line %d: %w", directive, keyNode.Line, err)
+					}
 					keyNode.LineComment = ""
 				}
 			}
@@ -97,13 +145,19 @@ func traverse(node *yaml.Node, params map[string]any) {
 			if valueNode.LineComment != "" {
 				directive, rawString := parseParamFromComment(valueNode.LineComment)
 				if rawString != "" {
-					processDirective(valueNode, directive, rawString, params)
+					if err := processDirective(valueNode, directive, rawString, params, strict); err != nil {
+						return fmt.Errorf("directive %q failed at line %d: %w", directive, valueNode.Line, err)
+					}
 					valueNode.LineComment = ""
 				}
 			}
 
-			traverse(keyNode, params)
-			traverse(valueNode, params)
+			if err := traverse(keyNode, params, strict); err != nil {
+				return err
+			}
+			if err := traverse(valueNode, params, strict); err != nil {
+				return err
+			}
 		}
 
 	case yaml.SequenceNode:
@@ -111,53 +165,97 @@ func traverse(node *yaml.Node, params map[string]any) {
 			if child.LineComment != "" {
 				directive, rawString := parseParamFromComment(child.LineComment)
 				if rawString != "" {
-					processDirective(child, directive, rawString, params)
+					if err := processDirective(child, directive, rawString, params, strict); err != nil {
+						return fmt.Errorf("directive %q failed at line %d: %w", directive, child.Line, err)
+					}
 					child.LineComment = ""
 				}
 			}
-			traverse(child, params)
+			if err := traverse(child, params, strict); err != nil {
+				return err
+			}
 		}
 	}
+
+	return nil
 }
 
-func processDirective(node *yaml.Node, directive, rawString string, params map[string]any) {
+func processDirective(node *yaml.Node, directive, rawString string, params map[string]any, strict bool) error {
 	slog.Debug("Processing directive", "directive", directive, "rawString", rawString)
 
 	if matches := simpleTemplateRegex.FindStringSubmatch(rawString); len(matches) > 1 {
 		paramName := matches[1]
-		if value, ok := params[paramName]; ok {
-			updateNodeValue(node, value, directive)
-			return
+		if value, ok := resolveParam(params, paramName); ok {
+			return updateNodeValue(node, value, directive)
+		}
+
+		if strict {
+			return fmt.Errorf("missing parameter %q", paramName)
 		}
 
 		slog.Debug("Template key missing, preserving default", "key", paramName)
-		return
+		return nil
 	}
 
 	renderedValue, err := executeTemplate(rawString, params)
 	if err == nil {
-		updateNodeValue(node, renderedValue, directive)
-	} else {
-		slog.Debug("Template failed, preserving default", "template", rawString, "error", err)
+		return updateNodeValue(node, renderedValue, directive)
 	}
+	if strict {
+		return err
+	}
+
+	slog.Debug("Template failed, preserving default", "template", rawString, "error", err)
+
+	return nil
 }
 
 func parseParamFromComment(comment string) (directive, paramName string) {
 	matches := paramCommentRegex.FindStringSubmatch(comment)
 	if len(matches) > 2 {
-		return matches[1], matches[2]
+		return matches[1], strings.TrimSpace(matches[2])
 	}
 	return "", ""
 }
 
-func updateNodeValue(node *yaml.Node, newValue any, directive string) {
+func mergeMappingNode(dst *yaml.Node, src *yaml.Node) {
+	// Deterministic merge: override existing keys; append new keys.
+	// This avoids duplicate keys in the output where possible.
+	index := make(map[string]int, len(dst.Content)/2)
+	for i := 0; i+1 < len(dst.Content); i += 2 {
+		k := dst.Content[i]
+		if k != nil && k.Kind == yaml.ScalarNode {
+			index[k.Value] = i
+		}
+	}
+
+	for i := 0; i+1 < len(src.Content); i += 2 {
+		sk := src.Content[i]
+		sv := src.Content[i+1]
+		if sk != nil && sk.Kind == yaml.ScalarNode {
+			if di, ok := index[sk.Value]; ok {
+				dst.Content[di+1] = sv
+				continue
+			}
+			index[sk.Value] = len(dst.Content)
+		}
+		dst.Content = append(dst.Content, sk, sv)
+	}
+}
+
+func updateNodeValue(node *yaml.Node, newValue any, directive string) error {
 	var replacementNode yaml.Node
 
-	err := replacementNode.Encode(newValue)
-	if err != nil {
-		slog.Debug("Failed to encode replacement node", "error", err)
-		node.Tag = "!!str"
-		node.Value = fmt.Sprintf("ERROR_ENCONDING:%v", err)
+	if newValue == nil {
+		replacementNode.Kind = yaml.ScalarNode
+		replacementNode.Tag = "!!null"
+		replacementNode.Value = "null"
+	} else {
+		err := replacementNode.Encode(newValue)
+		if err != nil {
+			slog.Debug("Failed to encode replacement node", "error", err)
+			return fmt.Errorf("failed to encode replacement node: %w", err)
+		}
 	}
 
 	isMerge := directive == "from-param-merge"
@@ -169,13 +267,16 @@ func updateNodeValue(node *yaml.Node, newValue any, directive string) {
 	if isMerge && isNodeSequence && isReplacementSequence {
 		node.Content = append(node.Content, replacementNode.Content...)
 	} else if isMerge && isNodeMap && isReplacementMap {
-		node.Content = append(node.Content, replacementNode.Content...)
+		mergeMappingNode(node, &replacementNode)
 	} else {
 		node.Kind = replacementNode.Kind
 		node.Tag = replacementNode.Tag
 		node.Value = replacementNode.Value
+		node.Style = replacementNode.Style
 		node.Content = replacementNode.Content
 	}
+
+	return nil
 }
 
 func executeTemplate(tmplStr string, params map[string]any) (string, error) {
