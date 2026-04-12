@@ -3,7 +3,6 @@ package cmd
 import (
 	"bytes"
 	"fmt"
-	"log/slog"
 	"os"
 	"text/template"
 
@@ -95,7 +94,7 @@ var initCmd = &cobra.Command{
 
 This file provides a starting point for defining your templates,
 target IDs, and parameters.`,
-	Run: runInit,
+	RunE: runInit,
 }
 
 var forceInit bool
@@ -147,27 +146,25 @@ func writeSpecFile(specFile string, content []byte, force bool) error {
 }
 
 // runInit generates a boilerplate spec.yaml file in the current directory.
-func runInit(cmd *cobra.Command, args []string) {
+func runInit(cmd *cobra.Command, args []string) error {
 	specFile := "spec.yaml"
 
 	specData.isBoilerplate = len(specData.Templates) == 0 && len(specData.Targets) == 0
 
 	tmpl, err := template.New("spec").Parse(specTemplate)
 	if err != nil {
-		slog.Error("failed to parse the template", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to parse init template: %w", err)
 	}
 
 	var content bytes.Buffer
 	if err := tmpl.Execute(&content, specData); err != nil {
-		slog.Error("failed to execute template", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to execute init template: %w", err)
 	}
 
 	if err := writeSpecFile(specFile, content.Bytes(), forceInit); err != nil {
-		slog.Error("failed to write spec file", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to write spec file: %w", err)
 	}
 
 	fmt.Printf("Generated boilerplate file: %s\n", specFile)
+	return nil
 }
