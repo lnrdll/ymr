@@ -6,6 +6,7 @@ templates:
   - placements.yaml
   - multi-doc.yaml
   - directive-detection.yaml
+  - loop.yaml
 
 targetIds:
   - dev
@@ -24,6 +25,7 @@ parameters:
       enabled: true
       ratio: 1.5
       maybe: ~
+      ldaps: [sponge, bob]
 
   - targetId: ["dev"]
     values:

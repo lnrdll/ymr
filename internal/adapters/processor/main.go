@@ -2,9 +2,11 @@ package processor
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -15,6 +17,14 @@ import (
 
 var paramCommentRegex = regexp.MustCompile(`^\s*(?:#\s*)?(from-param|from-param-merge):\s*(.+)\s*$`)
 var simpleTemplateRegex = regexp.MustCompile(`^\s*{{\s*\.([a-zA-Z0-9_.-]+)\s*}}\s*$`)
+
+const structuredTemplateResultPrefix = "__ymr_structured__:"
+
+type structuredTemplateResult struct {
+	Kind      string   `json:"kind"`
+	Items     []string `json:"items,omitempty"`
+	Delimiter string   `json:"delimiter,omitempty"`
+}
 
 func ProcessContent(templateContent []byte, params map[string]any, strict bool) (string, error) {
 	if len(bytes.TrimSpace(templateContent)) == 0 {
@@ -199,6 +209,20 @@ func processDirective(node *yaml.Node, directive, rawString string, params map[s
 
 	renderedValue, err := executeTemplate(rawString, params)
 	if err == nil {
+		decodedValue, handled, err := decodeStructuredTemplateResult(renderedValue, node)
+		if err != nil {
+			if strict {
+				return err
+			}
+
+			slog.Debug("Structured template result decode failed, preserving default", "template", rawString, "error", err)
+			return nil
+		}
+
+		if handled {
+			return updateNodeValue(node, decodedValue, directive)
+		}
+
 		return updateNodeValue(node, renderedValue, directive)
 	}
 	if strict {
@@ -290,6 +314,9 @@ func executeTemplate(tmplStr string, params map[string]any) (string, error) {
 			"replace": func(old, new string, s any) string {
 				return strings.ReplaceAll(fmt.Sprint(s), old, new)
 			},
+			"for": func(itemTemplate string, args ...any) (string, error) {
+				return renderForLoop(itemTemplate, args...)
+			},
 		}).
 		Parse(tmplStr)
 
@@ -304,4 +331,78 @@ func executeTemplate(tmplStr string, params map[string]any) (string, error) {
 	}
 
 	return buf.String(), nil
+}
+
+func decodeStructuredTemplateResult(rendered string, node *yaml.Node) (any, bool, error) {
+	if !strings.HasPrefix(rendered, structuredTemplateResultPrefix) {
+		return nil, false, nil
+	}
+
+	payload := strings.TrimPrefix(rendered, structuredTemplateResultPrefix)
+	var decoded structuredTemplateResult
+	if err := json.Unmarshal([]byte(payload), &decoded); err != nil {
+		return nil, true, fmt.Errorf("failed to decode structured template result: %w", err)
+	}
+
+	switch decoded.Kind {
+	case "for":
+		if node.Kind == yaml.SequenceNode {
+			return decoded.Items, true, nil
+		}
+		return strings.Join(decoded.Items, decoded.Delimiter), true, nil
+	default:
+		return nil, true, fmt.Errorf("unknown structured template result kind %q", decoded.Kind)
+	}
+}
+
+func renderForLoop(itemTemplate string, args ...any) (string, error) {
+	var (
+		delimiter string
+		values    any
+	)
+
+	switch len(args) {
+	case 1:
+		values = args[0]
+	case 2:
+		delimiter = fmt.Sprint(args[0])
+		values = args[1]
+	default:
+		return "", fmt.Errorf("for expects template, optional delimiter, and slice value")
+	}
+
+	rendered, err := mapLoopValues(itemTemplate, values)
+	if err != nil {
+		return "", err
+	}
+
+	payload, err := json.Marshal(structuredTemplateResult{
+		Kind:      "for",
+		Items:     rendered,
+		Delimiter: delimiter,
+	})
+	if err != nil {
+		return "", fmt.Errorf("marshaling for result: %w", err)
+	}
+
+	return structuredTemplateResultPrefix + string(payload), nil
+}
+
+func mapLoopValues(itemTemplate string, values any) ([]string, error) {
+	rv := reflect.ValueOf(values)
+	if !rv.IsValid() {
+		return nil, fmt.Errorf("for expects slice or array value")
+	}
+
+	if rv.Kind() != reflect.Slice && rv.Kind() != reflect.Array {
+		return nil, fmt.Errorf("for expects slice or array value")
+	}
+
+	rendered := make([]string, 0, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		item := rv.Index(i).Interface()
+		rendered = append(rendered, strings.ReplaceAll(itemTemplate, "$i", fmt.Sprint(item)))
+	}
+
+	return rendered, nil
 }

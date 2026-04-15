@@ -57,6 +57,7 @@ In addition, you can pipe the variables to the following functions:
 - `lower`: to set all characters to lower case. Example: `from-param: {{ .var | lower }}`
 - `upper`: to set all characters to upper case. Example: `from-param: {{ .var | upper }}`
 - `replace`: to do string substitution. Example: `from-param: {{ .var | replace "." "-" }}`
+- `for`: to map list values into either a joined scalar or a YAML sequence. Example: `from-param: {{ .ldaps | for "$i@example.com" "," }}`
 
 Validations are also available if there is a need to enforce requirements. The policy engine uses the Common Expression Language ([CEL](https://cel.dev/)) and it validates every parameter passed.
 
@@ -143,7 +144,7 @@ Note: `mise` task definitions live in `mise.toml`.
 ### Usage
 <a name="usage"></a>
 
-`ymr` provides four commands: `init`, `run`, `validate`, and `version`.
+`ymr` provides three commands: `init`, `run`, and `version`.
 
 #### `ymr init`
 
@@ -290,16 +291,16 @@ Note: In spec-less mode, if you write to files (i.e. `-o rendered/`), you typica
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-#### `ymr validate`
+#### Validation mode
 
-Validates a spec (or a single template in spec-less mode) without writing output files.
+Validate a spec (or a single template in spec-less mode) without writing output files by using `ymr run --validate`.
 
 ```bash
 # Validate a spec directory
-ymr validate -s example/k8s
+ymr run -s example/k8s --validate
 
 # Validate with strict mode (fail on any template load/parse/process error)
-ymr validate -s example/k8s --strict
+ymr run -s example/k8s --validate --strict
 ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -357,13 +358,55 @@ Templates may contain multiple YAML documents separated by `---`; `ymr` processe
         version: v1.0.0
     ```
 
+#### Template helper functions
+
+`ymr` supports helper functions inside directive templates.
+
+*   `lower`, `upper`, `replace`: string transforms.
+*   `for`: maps each item in a list using `$i` as the per-item placeholder.
+
+    **Joined scalar output:**
+    ```yaml
+    email: xxx # from-param: {{ .ldaps | for "$i@example.com" "," }}
+    ```
+
+    **`spec.yaml` parameter:**
+    ```yaml
+    ldaps:
+      - Sponge
+      - bob
+    ```
+
+    **Output:**
+    ```yaml
+    email: Sponge@example.com,bob@example.com
+    ```
+
+    **YAML sequence output:**
+    ```yaml
+    emails: [] # from-param: {{ .ldaps | for "$i@example.com" }}
+    ```
+
+    **Output:**
+    ```yaml
+    emails:
+      - Sponge@example.com
+      - bob@example.com
+    ```
+
+    Notes:
+    - `for` only works with slice/array values.
+    - Passing a delimiter produces a scalar string.
+    - Omitting the delimiter produces a YAML sequence.
+    - Item casing is preserved as provided in params.
+
 ### Examples
 <a name="examples"></a>
 
 The [`example`](./example) directory contains a few examples of how to use `ymr`.
 
 - [`simple`](./example/simple): A simple example of how to use `ymr` with a single template and a single target.
-- [`features`](./example/features): A focused set of examples covering nested-path directives, deterministic merges, strict-mode directive errors, and CLI float params.
+- [`features`](./example/features): A focused set of examples covering nested-path directives, deterministic merges, list mapping with `for`, strict-mode directive errors, and CLI float params.
 - [`k8s`](./example/k8s): A more complex example of how to use `ymr` to generate Kubernetes manifests for multiple targets.
 - [`gcp-cloud-run`](./example/gcp-cloud-run): An example of how to use `ymr` to generate a GCP Cloud Run service definition for multiple targets.
 - [`docker-composer`](./example/docker-composer): An example of how to use `ymr` to generate a Docker Compose file for multiple targets.

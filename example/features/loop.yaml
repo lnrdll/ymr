@@ -1,0 +1,2 @@
+email: "" # from-param: {{ .ldaps | for "$i@example.com" "," }}
+emails: [] # from-param: {{ .ldaps | for "$i@example.com" }}

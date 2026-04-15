@@ -313,6 +313,129 @@ replaced: default # from-param: {{ .name | replace "." "-" }}
 	}
 }
 
+func TestProcessContent_TemplateFunctions_ForWithJoin_Succeeds(t *testing.T) {
+	t.Parallel()
+
+	tpl := []byte("email: x # from-param: {{ .ldaps | for \"$i@example.com\" \",\" }}\n")
+
+	out, err := ProcessContent(tpl, map[string]any{"ldaps": []any{"Sponge", "bob"}}, true)
+	if err != nil {
+		t.Fatalf("ProcessContent err = %v", err)
+	}
+	if !strings.Contains(out, "email: Sponge@example.com,bob@example.com") {
+		t.Fatalf("expected joined emails; got:\n%s", out)
+	}
+}
+
+func TestProcessContent_TemplateFunctions_ForOnSequence_IgnoresDelimiterAndPreservesArrayType(t *testing.T) {
+	t.Parallel()
+
+	tpl := []byte("emails: [] # from-param: {{ .ldaps | for \"$i@example.com\" \",\" }}\n")
+
+	out, err := ProcessContent(tpl, map[string]any{"ldaps": []any{"Sponge", "bob"}}, true)
+	if err != nil {
+		t.Fatalf("ProcessContent err = %v", err)
+	}
+
+	var got map[string]any
+	if err := yaml.Unmarshal([]byte(out), &got); err != nil {
+		t.Fatalf("unmarshal output: %v\noutput:\n%s", err, out)
+	}
+
+	emails, ok := got["emails"].([]any)
+	if !ok {
+		t.Fatalf("emails type = %T, want []any; got %#v", got["emails"], got)
+	}
+	if len(emails) != 2 || emails[0] != "Sponge@example.com" || emails[1] != "bob@example.com" {
+		t.Fatalf("emails = %#v, want [Sponge@example.com bob@example.com]", emails)
+	}
+}
+
+func TestProcessContent_TemplateFunctions_ForWithEmptyDelimiter_JoinsAsScalar(t *testing.T) {
+	t.Parallel()
+
+	tpl := []byte("email: x # from-param: {{ .ldaps | for \"$i@example.com\" \"\" }}\n")
+
+	out, err := ProcessContent(tpl, map[string]any{"ldaps": []any{"Sponge", "bob"}}, true)
+	if err != nil {
+		t.Fatalf("ProcessContent err = %v", err)
+	}
+	if !strings.Contains(out, "email: Sponge@example.combob@example.com") {
+		t.Fatalf("expected joined scalar with empty delimiter; got:\n%s", out)
+	}
+
+	var got map[string]any
+	if err := yaml.Unmarshal([]byte(out), &got); err != nil {
+		t.Fatalf("unmarshal output: %v\noutput:\n%s", err, out)
+	}
+	if _, ok := got["email"].([]any); ok {
+		t.Fatalf("email unexpectedly decoded as sequence: %#v", got["email"])
+	}
+}
+
+func TestProcessContent_TemplateFunctions_ForWithoutJoin_PreservesArrayType(t *testing.T) {
+	t.Parallel()
+
+	tpl := []byte("emails: [] # from-param: {{ .ldaps | for \"$i@example.com\" }}\n")
+
+	out, err := ProcessContent(tpl, map[string]any{"ldaps": []any{"Sponge", "bob"}}, true)
+	if err != nil {
+		t.Fatalf("ProcessContent err = %v", err)
+	}
+
+	var got map[string]any
+	if err := yaml.Unmarshal([]byte(out), &got); err != nil {
+		t.Fatalf("unmarshal output: %v\noutput:\n%s", err, out)
+	}
+
+	emails, ok := got["emails"].([]any)
+	if !ok {
+		t.Fatalf("emails type = %T, want []any; got %#v", got["emails"], got)
+	}
+	if len(emails) != 2 || emails[0] != "Sponge@example.com" || emails[1] != "bob@example.com" {
+		t.Fatalf("emails = %#v, want [Sponge@example.com bob@example.com]", emails)
+	}
+}
+
+func TestProcessContent_TemplateFunctions_ForWithoutDelimiter_OnScalar_JoinsWithoutSeparator(t *testing.T) {
+	t.Parallel()
+
+	tpl := []byte("email: x # from-param: {{ .ldaps | for \"$i@example.com\" }}\n")
+
+	out, err := ProcessContent(tpl, map[string]any{"ldaps": []any{"Sponge", "bob"}}, true)
+	if err != nil {
+		t.Fatalf("ProcessContent err = %v", err)
+	}
+	if !strings.Contains(out, "email: Sponge@example.combob@example.com") {
+		t.Fatalf("expected scalar join without separator; got:\n%s", out)
+	}
+}
+
+func TestProcessContent_Strict_TemplateForWithScalarValue_ReturnsError(t *testing.T) {
+	t.Parallel()
+
+	tpl := []byte("email: x # from-param: {{ .ldap | for \"$i@example.com\" \",\" }}\n")
+
+	_, err := ProcessContent(tpl, map[string]any{"ldap": "Sponge"}, true)
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+}
+
+func TestProcessContent_NonStrict_TemplateForWithScalarValue_PreservesDefault(t *testing.T) {
+	t.Parallel()
+
+	tpl := []byte("email: default # from-param: {{ .ldap | for \"$i@example.com\" \",\" }}\n")
+
+	out, err := ProcessContent(tpl, map[string]any{"ldap": "Sponge"}, false)
+	if err != nil {
+		t.Fatalf("ProcessContent err = %v", err)
+	}
+	if !strings.Contains(out, "email: default") {
+		t.Fatalf("expected default preserved; got:\n%s", out)
+	}
+}
+
 func TestProcessContent_SimpleParam_NullEncodesAsYAMLNull(t *testing.T) {
 	t.Parallel()
 

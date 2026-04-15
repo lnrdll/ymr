@@ -16,47 +16,62 @@ If you are an automated agent working in this repo:
 ## Product Behavior (Non-Obvious)
 
 - Spec-less is the default: `ymr run` only loads a spec when `--spec` (`-s`) is provided.
-- Spec-less mode requires `--template` (`-T`) and at least one `--param` (`-p`).
+- Spec-less mode requires `--template` (`-T`) and at least one parameter source: `--param`, `--param-file`, or `--param-yaml`.
 - If you output to files in spec-less mode (`-o rendered/`), pass at least one `--target` so output filenames are stable.
 - Template directives are embedded in YAML comments and are removed from the output after processing.
+- `--strict` changes failure behavior: render or directive errors fail the run instead of preserving defaults / skipping failed template-target combinations.
+- `--validate` validates config, params, and templates without writing rendered output.
 
 ## Repository Map
 
 - `main.go`: program entrypoint, calls Cobra.
 - `cmd/`: Cobra command definitions.
+  - `cmd/root.go`: root command, shared CLI error formatting, process exit behavior.
   - `cmd/run.go`: CLI flags and spec/spec-less mode gate.
   - `cmd/init.go`: generates boilerplate `spec.yaml`.
   - `cmd/version.go`: prints build info.
-- `internal/app/main.go`: top-level orchestration for `ymr run`.
-- `internal/spec/`: spec schema and CLI `key=value` parsing.
-- `internal/source/`: loads `spec.yaml`, templates, and validations from local paths, HTTP(S), or GitHub.
-- `internal/processor/`: YAML AST traversal and directive application (`from-param`, `from-param-merge`).
-- `internal/validation/`: CEL-based policy checks.
+- `internal/app/`: orchestration for `ymr run`.
+  - `internal/app/command.go`: main run command flow.
+  - `internal/app/config_validation.go`: validates spec vs spec-less CLI requirements.
+  - `internal/app/plan.go`: builds execution plan (loader, params, targets, validations).
+  - `internal/app/spec_loader.go`: loads `spec.yaml` or synthesizes spec-less config.
+  - `internal/app/template_flow.go`: walks templates × targets and collects rendered output.
+- `internal/domain/config/`: `SpecConfig` schema, parameter-set types, CLI `key=value` parsing, per-target param lookup.
+- `internal/ports/`: source / processor / validation / output / runtime interfaces and shared DTOs.
+- `internal/adapters/source/`: loads `spec.yaml`, templates, params, and validations from local paths, HTTP(S), or GitHub.
+- `internal/adapters/processor/`: YAML AST traversal and directive application (`from-param`, `from-param-merge`).
+- `internal/adapters/validation/`: CEL-based policy checks.
+- `internal/adapters/output_adapter.go`: writes rendered output to stdout or files.
+- `internal/buildinfo/`: version, commit, and build date metadata.
+- `internal/logger/`: slog setup for CLI debug logging.
 - `example/`: runnable sample specs/templates.
 - `scripts/`: release build scripts (cross-compile + archive + sha256).
 
 ## Core Flow (ymr run)
 
 1. Parse CLI flags (`cmd/run.go`) into `internal/app.Config`.
-2. If `--spec` is set:
-   - `internal/source.NewSourceLoader()` chooses loader: local dir/file, HTTP(S), or GitHub.
-   - loader reads and parses `spec.yaml` into `internal/spec.SpecConfig`.
-3. Else (spec-less):
-   - a minimal in-memory spec is constructed using `--template`.
-4. Parameter map is built per target from `spec.yaml` (`internal/spec.BuildParamLookup`).
+2. `internal/app/command.go` validates CLI requirements via `validateRunConfig` and derives output mode (`stdout` vs directory).
+3. `internal/app/plan.go` builds execution plan:
+   - resolve GitHub token from flag or environment.
+   - if `--spec` is set, `internal/adapters/source.NewSourceLoader()` chooses loader: local dir/file, HTTP(S), or GitHub, then loads `spec.yaml`.
+   - else (spec-less), `internal/app/spec_loader.go` constructs a minimal in-memory `internal/domain/config.SpecConfig` from `--template` and current working directory.
+4. Parameter map is built per target from `spec.yaml` (`internal/domain/config.BuildParamLookup`).
 5. CLI overrides apply:
-   - `--param key=value` is parsed with type inference (int, bool, string).
+   - `--param key=value` is parsed with type inference (`int`, `bool`, `float64`, fallback string).
+   - `--param-file` and `--param-yaml` are merged into same override map.
    - `--target` filters targets to render.
 6. Validations:
    - CEL rules come from spec, or `--validation` overrides with an external file.
-   - Rules only apply when the rule explicitly lists the current `targetId`.
-7. For each template x target:
-   - template content is loaded via `internal/source.LoadTemplate()`.
-   - YAML is parsed to an AST and directives are applied (`internal/processor.ProcessContent`).
+   - Rules run per target via `internal/app.validateTargets` and only apply when current `targetId` is listed on rule.
+7. For each template x target (`internal/app/template_flow.go`):
+   - template content is loaded via `internal/adapters/source.LoadTemplate()`.
+   - YAML is parsed to an AST and directives are applied (`internal/adapters/processor.ProcessContent`).
+   - strict mode aggregates and returns render errors; best-effort mode logs warning and skips failed template-target combinations.
    - output filename is `${targetId}-${templateBaseName}${ext}`.
 8. Output:
    - `-o -` prints concatenated content to stdout.
-   - otherwise writes files (creates output dir if needed).
+   - otherwise `internal/adapters/output_adapter.go` writes files (creating output dir if needed).
+9. If `--validate` is set, template loading + processing still run, but no rendered files are written.
 
 ## Template Directives
 
@@ -76,11 +91,14 @@ Rendering rules:
 Merge behavior:
 
 - For sequences: `from-param-merge` appends items.
-- For mappings: `from-param-merge` appends key/value pairs.
+- For mappings: `from-param-merge` deterministically overrides existing keys and appends new key/value pairs.
 
 === My Engineering preferences ===
 
 # Overall
+
+- If available, always use the caveman skill in full for outputs
+- If available, use golang skills 
 
 ## Think before coding
 

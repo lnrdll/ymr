@@ -5,6 +5,7 @@ This directory demonstrates `ymr` features:
 - Array indexing in simple directives (e.g. `.app.ports.0`)
 - CLI `--param` now parses floats (in addition to ints/bools/strings)
 - Deterministic map merge (`from-param-merge` overrides existing keys)
+- List mapping with `for` (joined scalar or YAML sequence output)
 - parameter source precedence (param-file < param-yaml < --param)
 - Simple directives support nested paths (e.g. `.app.image.tag`) while preserving YAML types
 - spec-based runs with multiple targets
@@ -77,6 +78,25 @@ go run . run -T example/features/cli-params.yaml -t dev -o - \
   -p enabled=true \
   -p ratio=1.5 \
   -p name=myapp
+```
+
+### List mapping with `for`
+
+Spec-based example:
+
+```bash
+go run . run -s example/features -T example/features/loop.yaml -t dev -o -
+```
+
+This renders both:
+- `email: Sponge@example.com,bob@example.com`
+- a YAML sequence under `emails:`
+
+Spec-less example:
+
+```bash
+go run . run -T example/features/loop.yaml -t dev -o - \
+  --param-file example/features/params-loop.yaml
 ```
 
 ## Remote source loading (reference)
