@@ -1,0 +1,42 @@
+# Commands for this project, read by Fabricator ("Import commands").
+#
+# [[command]]
+# name = "Dev"                 # required
+# command = "npm run dev"      # required; run by your login shell
+# cwd = "web"                  # optional; folder inside the worktree
+# auto-start = true            # start when a worktree is created
+# auto-restart = true          # restart after a crash, with backoff
+# notify = "important"         # all | important (failures) | none
+# watch = ["src/**/*.go"]      # re-run when these change
+
+[[command]]
+name = "build (mise)"
+command = "mise run build"
+
+[[command]]
+name = "check"
+command = "mise run check"
+
+[[command]]
+name = "clean"
+command = "mise run clean"
+
+[[command]]
+name = "init"
+command = "mise run init"
+
+[[command]]
+name = "lint"
+command = "mise run lint"
+
+[[command]]
+name = "run (mise)"
+command = "mise run run"
+
+[[command]]
+name = "test (mise)"
+command = "mise run test"
+
+[[command]]
+name = "update"
+command = "mise run update"

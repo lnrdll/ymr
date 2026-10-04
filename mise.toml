@@ -5,7 +5,7 @@ quiet = true
 enter = "mise install"
 
 [tools]
-golang = "1.25"
+golang = "1.27"
 golangci-lint = "latest"
 
 [vars]
@@ -24,7 +24,11 @@ go mod tidy
 description = "(c) Clean modules"
 alias = "c"
 dir = "{{ config_root }}"
-run = "go clean -modcache"
+run = '''
+go clean -modcache
+rm -f go.mod
+rm -f go.sum
+'''
 
 [tasks.update]
 description = "(u) Update all modules"

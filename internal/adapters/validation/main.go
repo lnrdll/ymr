@@ -7,7 +7,7 @@ import (
 
 	config "github.com/lnrdll/ymr/internal/domain/config"
 
-	"github.com/google/cel-go/cel"
+	"cel.dev/cel-go/cel"
 )
 
 type compiledValidation struct {
