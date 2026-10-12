@@ -275,12 +275,18 @@ ymr run -s example/gcp-cloud-run -t prd -o -
 # Use a GitHub repo directly (requires --token or GITHUB_TOKEN env for private repos)
 ymr run -s https://github.com/lnrdll/ymr/example/k8s@main -o -
 
+# The same spec, given as a GitHub file or directory link
+ymr run -s https://github.com/lnrdll/ymr/blob/main/example/k8s/spec.yaml -o -
+ymr run -s https://github.com/lnrdll/ymr/tree/main/example/k8s -o -
+
 # Run in spec-less mode
 ymr run -T https://github.com/lnrdll/ymr/blob/main/example/k8s/deployment.yaml -t dev -p name=example -o -
 
 # Run in spec-less strict mode
 ymr run -T ./example/k8s/deployment.yaml -t dev -p name=example --strict -o -
 ```
+
+Note: In GitHub `/tree/<ref>/...` and `/blob/<ref>/...` URLs, the first segment after `tree/` or `blob/` is the ref, so refs containing `/` (for example `feature/x`) are not supported there. In the `@ref` form, a path ending in `.yaml` or `.yml` is the spec file itself, and any other path is a directory holding `spec.yaml`.
 
 Note: In spec-less mode, if you write to files (i.e. `-o rendered/`), you typically want to pass at least one `--target` so output filenames are stable.
 
