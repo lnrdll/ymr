@@ -21,7 +21,7 @@ func (sourceAdapter) NewLocalLoader(baseDir string) ports.SourceLoader {
 }
 
 func (sourceAdapter) LoadTemplate(loader ports.SourceLoader, templatePath string, token string) ([]byte, error) {
-	return source.LoadTemplate(loader, templatePath, token)
+	return source.LoadTemplateWithLoader(loader, templatePath, token)
 }
 
 func (sourceAdapter) LoadValidations(filePath string, token string) ([]config.Validation, error) {

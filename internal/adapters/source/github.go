@@ -20,7 +20,7 @@ func (g *GithubLoader) LoadSpec(token string) (*config.SpecConfig, error) {
 	specURL := g.GetRawContentURL("spec.yaml", true)
 	slog.Debug("Loading spec from GitHub", "specURL", specURL)
 
-	content, err := fetch(specURL, token, true)
+	content, err := defaultResolver.fetch(specURL, token, true)
 	if err != nil {
 		return nil, fmt.Errorf("fetching spec from GitHub %s: %w", specURL, err)
 	}

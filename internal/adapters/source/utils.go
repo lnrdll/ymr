@@ -57,7 +57,7 @@ func parseSpec(content []byte) (*config.SpecConfig, error) {
 	return &cfg, nil
 }
 
-func fetch(rawURL string, token string, isSpec bool) ([]byte, error) {
+func (r resolver) fetch(rawURL string, token string, isSpec bool) ([]byte, error) {
 	slog.Debug("Fetching HTTP content", "url", rawURL, "isSpec", isSpec)
 
 	transformedURL := rawURL
@@ -65,7 +65,6 @@ func fetch(rawURL string, token string, isSpec bool) ([]byte, error) {
 		transformedURL = ghl.GetRawContentURL("", isSpec)
 	}
 
-	client := &http.Client{Timeout: defaultHTTPTimeout}
 	req, err := http.NewRequest("GET", transformedURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create HTTP request for %s: %w", transformedURL, err)
@@ -79,7 +78,7 @@ func fetch(rawURL string, token string, isSpec bool) ([]byte, error) {
 	}
 	req.Header.Add("Cache-control", "no-cache")
 
-	resp, err := client.Do(req)
+	resp, err := r.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch remote content from %s: %w", transformedURL, err)
 	}

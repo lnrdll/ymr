@@ -16,7 +16,7 @@ type HTTPLoader struct {
 func (h *HTTPLoader) LoadSpec(token string) (*config.SpecConfig, error) {
 	slog.Debug("Loading spec from HTTP", "specURL", h.SpecURL.String())
 
-	content, err := fetch(h.SpecURL.String(), token, true)
+	content, err := defaultResolver.fetch(h.SpecURL.String(), token, true)
 	if err != nil {
 		return nil, fmt.Errorf("fetching spec from %s: %w", h.SpecURL.String(), err)
 	}

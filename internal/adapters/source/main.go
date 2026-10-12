@@ -45,12 +45,14 @@ func NewSourceLoader(path string, token string) (ports.SourceLoader, error) {
 	return nil, fmt.Errorf("could not determine source type for path: %s", path)
 }
 
-func LoadTemplate(loader ports.SourceLoader, templatePath string, token string) ([]byte, error) {
+// LoadTemplateWithLoader is the loader-based template lookup the app still
+// uses; it goes away once the app moves to LoadSpecTemplate and LoadTemplate.
+func LoadTemplateWithLoader(loader ports.SourceLoader, templatePath string, token string) ([]byte, error) {
 	slog.Debug("Loading template", "templatePath", templatePath)
 
 	if isRemotePath(templatePath) {
 		slog.Debug("Template path is remote, fetching directly", "templatePath", templatePath)
-		return fetch(templatePath, token, false)
+		return defaultResolver.fetch(templatePath, token, false)
 	}
 
 	basePath := loader.GetBasePath()
@@ -77,22 +79,14 @@ func LoadTemplate(loader ports.SourceLoader, templatePath string, token string) 
 
 	if isRemotePath(finalPath) {
 		slog.Debug("Fetching remote template content", "finalPath", finalPath)
-		return fetch(finalPath, token, false)
+		return defaultResolver.fetch(finalPath, token, false)
 	}
 
 	return os.ReadFile(finalPath)
 }
 
-func LoadValidations(filePath string, token string) ([]config.Validation, error) {
-	var data []byte
-	var err error
-	if isRemotePath(filePath) {
-		data, err = fetch(filePath, token, false)
-	} else if _, ok := ParseGitHubURL(filePath); ok {
-		data, err = fetch(filePath, token, false)
-	} else {
-		data, err = os.ReadFile(filePath)
-	}
+func (r resolver) LoadValidations(filePath string, token string) ([]config.Validation, error) {
+	data, err := r.acquire(filePath, token)
 	if err != nil {
 		return nil, fmt.Errorf("reading validation file '%s': %w", filePath, err)
 	}
