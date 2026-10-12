@@ -599,6 +599,32 @@ func TestLoadTemplate_LocalPathNotMatchingGitHubForm_ReadFromDisk(t *testing.T) 
 	assertURLs(t, remote.requestedURLs())
 }
 
+// A failed GitHub fetch never falls back to a local file with the same path.
+func TestLoadTemplate_SchemelessGitHubRefNotFound_FailsNamingRawURL(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, filepath.Join(dir, "github.com", "u", "r", "x.yaml@v2"), "local: 1\n")
+	t.Chdir(dir)
+	remote := newFakeRemote(t, nil)
+
+	_, err := remote.resolver().LoadTemplate("github.com/u/r/x.yaml@v2", "")
+	assertErrorContains(t, err, "bad response from server for https://raw.githubusercontent.com/u/r/v2/x.yaml: 404 Not Found")
+}
+
+// Without @ref a github.com-prefixed path is not a GitHub form, so it stays
+// relative to the spec.
+func TestLoadSpecTemplate_LocalSpec_GitHubPrefixWithoutRef_ResolvesRelativeToSpec(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	writeFile(t, filepath.Join(dir, "spec.yaml"), specYAML)
+	writeFile(t, filepath.Join(dir, "github.com", "u", "r", "x.yaml"), "a: 1\n")
+	remote := newFakeRemote(t, nil)
+
+	got, err := remote.resolver().LoadSpecTemplate(dir, "github.com/u/r/x.yaml", "")
+	assertContent(t, got, err, "a: 1\n")
+	assertURLs(t, remote.requestedURLs())
+}
+
 func TestLoadTemplate_RemoteURLs_FetchRawURL(t *testing.T) {
 	t.Parallel()
 
