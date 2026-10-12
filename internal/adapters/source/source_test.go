@@ -664,6 +664,7 @@ func TestLoadParamsAndValidations_RemoteForms_FetchRawURL(t *testing.T) {
 		{name: "GitHub blob", location: "https://github.com/u/r/blob/v1/dir/p.yaml", wantURL: "https://raw.githubusercontent.com/u/r/v1/dir/p.yaml"},
 		{name: "GitHub repo root", location: "https://github.com/u/r", wantURL: "https://raw.githubusercontent.com/u/r/main/"},
 		{name: "GitHub tree ref", location: "https://github.com/u/r/tree/v1", wantURL: "https://raw.githubusercontent.com/u/r/v1/"},
+		{name: "GitHub tree ref with path", location: "https://github.com/u/r/tree/v1/dir/p.yaml", wantURL: "https://raw.githubusercontent.com/u/r/v1/dir/p.yaml"},
 		{name: "GitHub https file at ref", location: "https://github.com/u/r/dir/p.yaml@v1", wantURL: "https://raw.githubusercontent.com/u/r/v1/dir/p.yaml"},
 		{name: "GitHub scheme-less file at ref", location: "github.com/u/r/dir/p.yaml@v1", wantURL: "https://raw.githubusercontent.com/u/r/v1/dir/p.yaml"},
 	}
@@ -716,7 +717,7 @@ func TestFetch_Headers(t *testing.T) {
 		},
 		{
 			name:       "token sent to github.com",
-			location:   "https://github.com/u/r/tree/v1/p.yaml",
+			location:   "https://github.com/u/r/raw/v1/p.yaml",
 			token:      "secret",
 			wantAuth:   "Bearer secret",
 			wantAccept: "application/vnd.github.v3.raw",
