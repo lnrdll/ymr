@@ -21,9 +21,9 @@ var githubBlobRegex = regexp.MustCompile(`^https?://github\.com/([^/]+)/([^/]+)/
 var githubRepoRegex = regexp.MustCompile(`^https?://github\.com/([^/]+)/([^/@]+)(?:/tree/([^/]+))?/?$`)
 var githubSourceRegex = regexp.MustCompile(`^(?:https?://)?github\.com/([^/]+)/([^/@]+)(?:/([^@]+))?@(.+)`)
 
-func ParseGitHubURL(rawURL string) (GithubLoader, bool) {
+func parseGitHubURL(rawURL string) (githubLocation, bool) {
 	if matches := githubBlobRegex.FindStringSubmatch(rawURL); len(matches) == 5 {
-		return GithubLoader{User: matches[1], Repo: matches[2], Ref: matches[3], Path: matches[4]}, true
+		return githubLocation{User: matches[1], Repo: matches[2], Ref: matches[3], Path: matches[4]}, true
 	}
 
 	if matches := githubRepoRegex.FindStringSubmatch(rawURL); len(matches) > 0 {
@@ -31,14 +31,14 @@ func ParseGitHubURL(rawURL string) (GithubLoader, bool) {
 		if len(matches) == 4 && matches[3] != "" {
 			branch = matches[3]
 		}
-		return GithubLoader{User: matches[1], Repo: matches[2], Ref: branch}, true
+		return githubLocation{User: matches[1], Repo: matches[2], Ref: branch}, true
 	}
 
 	if matches := githubSourceRegex.FindStringSubmatch(rawURL); len(matches) == 5 {
-		return GithubLoader{User: matches[1], Repo: matches[2], Subdir: matches[3], Ref: matches[4]}, true
+		return githubLocation{User: matches[1], Repo: matches[2], Subdir: matches[3], Ref: matches[4]}, true
 	}
 
-	return GithubLoader{}, false
+	return githubLocation{}, false
 }
 
 func isRemotePath(path string) bool {
@@ -61,8 +61,8 @@ func (r resolver) fetch(rawURL string, token string, isSpec bool) ([]byte, error
 	slog.Debug("Fetching HTTP content", "url", rawURL, "isSpec", isSpec)
 
 	transformedURL := rawURL
-	if ghl, ok := ParseGitHubURL(rawURL); ok {
-		transformedURL = ghl.GetRawContentURL("", isSpec)
+	if ghl, ok := parseGitHubURL(rawURL); ok {
+		transformedURL = ghl.rawContentURL("", isSpec)
 	}
 
 	req, err := http.NewRequest("GET", transformedURL, nil)

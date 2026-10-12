@@ -62,7 +62,7 @@ func (r resolver) read(location string, token string) ([]byte, error) {
 // acquire is read plus GitHub forms, scheme-less ones included, which are
 // fetched from their raw content URL.
 func (r resolver) acquire(location string, token string) ([]byte, error) {
-	if _, ok := ParseGitHubURL(location); ok {
+	if _, ok := parseGitHubURL(location); ok {
 		return r.fetch(location, token, false)
 	}
 	return r.read(location, token)
@@ -80,10 +80,10 @@ type specSource struct {
 // resolveSpec checks GitHub forms first, then an existing local path, then
 // HTTP(S).
 func resolveSpec(specLocation string) (specSource, error) {
-	if gh, ok := ParseGitHubURL(specLocation); ok {
+	if gh, ok := parseGitHubURL(specLocation); ok {
 		return specSource{
-			file:    gh.GetRawContentURL("spec.yaml", true),
-			baseDir: gh.GetRawContentURL("", false),
+			file:    gh.rawContentURL("spec.yaml", true),
+			baseDir: gh.rawContentURL("", false),
 			readErr: "fetching spec from GitHub %s: %w",
 		}, nil
 	}

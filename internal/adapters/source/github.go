@@ -5,7 +5,7 @@ import (
 	"path"
 )
 
-type GithubLoader struct {
+type githubLocation struct {
 	Path   string
 	Ref    string
 	Repo   string
@@ -13,7 +13,7 @@ type GithubLoader struct {
 	User   string
 }
 
-func (g *GithubLoader) GetRawContentURL(relativePath string, isSpec bool) string {
+func (g *githubLocation) rawContentURL(relativePath string, isSpec bool) string {
 	if g.Path != "" && relativePath == "" {
 		return fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", g.User, g.Repo, g.Ref, g.Path)
 	}
