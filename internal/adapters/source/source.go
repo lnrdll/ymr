@@ -161,15 +161,14 @@ func (r resolver) LoadTemplate(templateLocation string, token string) ([]byte, e
 
 // loadTemplate joins a relative templatePath onto baseDir, a local directory
 // or a URL; an empty baseDir leaves it relative to the working directory.
-// Only HTTP(S) templates are fetched: a scheme-less GitHub form is read as a
-// local path (fix task: github-template-refs).
+// GitHub forms, scheme-less ones included, are absolute locations.
 func (r resolver) loadTemplate(baseDir string, templatePath string, token string) ([]byte, error) {
 	slog.Debug("Loading template", "templatePath", templatePath, "baseDir", baseDir)
 
 	// An absolute path is read from disk even when baseDir is remote (fix
 	// task: remote-spec-local-template).
-	if isRemotePath(templatePath) || filepath.IsAbs(templatePath) {
-		return r.read(templatePath, token)
+	if _, ok := parseGitHubURL(templatePath); ok || isRemotePath(templatePath) || filepath.IsAbs(templatePath) {
+		return r.acquire(templatePath, token)
 	}
 
 	if isRemotePath(baseDir) {

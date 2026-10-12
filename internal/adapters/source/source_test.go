@@ -506,6 +506,36 @@ func TestLoadSpecTemplate_RemoteTemplateURLInSpec_FetchedDirectly(t *testing.T) 
 	}
 }
 
+// A scheme-less GitHub template is an absolute location: it never resolves
+// against the spec, whatever the spec's kind.
+func TestLoadSpecTemplate_SchemelessGitHubRef_FetchesRawURL(t *testing.T) {
+	t.Parallel()
+
+	localSpec := t.TempDir()
+	writeFile(t, filepath.Join(localSpec, "spec.yaml"), specYAML)
+
+	tests := []struct {
+		name string
+		spec string
+	}{
+		{name: "local spec", spec: localSpec},
+		{name: "HTTP spec", spec: "https://example.com/specs/spec.yaml"},
+		{name: "GitHub spec", spec: "github.com/o/s/dir@v1"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			remote := newFakeRemote(t, map[string]string{"raw.githubusercontent.com/u/r/main/x.yaml": "a: 1\n"})
+
+			got, err := remote.resolver().LoadSpecTemplate(tt.spec, "github.com/u/r/x.yaml@main", "")
+			assertContent(t, got, err, "a: 1\n")
+			assertURLs(t, remote.requestedURLs(), "https://raw.githubusercontent.com/u/r/main/x.yaml")
+		})
+	}
+}
+
 // Bug: a remote spec can make ymr read any absolute path on the local
 // filesystem. Fix task: remote-spec-local-template.
 func TestLoadSpecTemplate_RemoteSpecAbsoluteTemplate_ReadsLocalFile(t *testing.T) {
@@ -536,16 +566,36 @@ func TestLoadTemplate_MissingFile_FailsNamingPath(t *testing.T) {
 	assertErrorContains(t, err, "missing.yaml")
 }
 
-// Bug: the scheme-less GitHub form is not recognised for templates and is
-// read as a local path. Fix task: github-template-refs.
-func TestLoadTemplate_SchemelessGitHubRef_ReadAsLocalPath(t *testing.T) {
+// The scheme-less GitHub form is fetched from GitHub with auth headers, even
+// when a local file has the same path.
+func TestLoadTemplate_SchemelessGitHubRef_FetchesRawURL(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, filepath.Join(dir, "github.com", "u", "r", "t.yaml@v1"), "local: 1\n")
+	writeFile(t, filepath.Join(dir, "github.com", "u", "r", "x.yaml@main"), "local: 1\n")
+	t.Chdir(dir)
+	remote := newFakeRemote(t, map[string]string{"raw.githubusercontent.com/u/r/main/x.yaml": "a: 1\n"})
+
+	got, err := remote.resolver().LoadTemplate("github.com/u/r/x.yaml@main", "secret")
+	assertContent(t, got, err, "a: 1\n")
+	req := remote.onlyRequest(t)
+	if req.URL != "https://raw.githubusercontent.com/u/r/main/x.yaml" {
+		t.Fatalf("URL = %q, want https://raw.githubusercontent.com/u/r/main/x.yaml", req.URL)
+	}
+	if got := req.Header.Get("Authorization"); got != "Bearer secret" {
+		t.Fatalf("Authorization = %q, want Bearer secret", got)
+	}
+	if got := req.Header.Get("Accept"); got != "application/vnd.github.v3.raw" {
+		t.Fatalf("Accept = %q, want application/vnd.github.v3.raw", got)
+	}
+}
+
+func TestLoadTemplate_LocalPathNotMatchingGitHubForm_ReadFromDisk(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, filepath.Join(dir, "tpl", "x.yaml@main"), "a: 1\n")
 	t.Chdir(dir)
 	remote := newFakeRemote(t, nil)
 
-	got, err := remote.resolver().LoadTemplate("github.com/u/r/t.yaml@v1", "")
-	assertContent(t, got, err, "local: 1\n")
+	got, err := remote.resolver().LoadTemplate("tpl/x.yaml@main", "")
+	assertContent(t, got, err, "a: 1\n")
 	assertURLs(t, remote.requestedURLs())
 }
 
