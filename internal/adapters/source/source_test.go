@@ -536,18 +536,45 @@ func TestLoadSpecTemplate_SchemelessGitHubRef_FetchesRawURL(t *testing.T) {
 	}
 }
 
-// Bug: a remote spec can make ymr read any absolute path on the local
-// filesystem. Fix task: remote-spec-local-template.
-func TestLoadSpecTemplate_RemoteSpecAbsoluteTemplate_ReadsLocalFile(t *testing.T) {
+// A remote spec must not make ymr read files from the local filesystem.
+func TestLoadSpecTemplate_RemoteSpecAbsoluteTemplate_Fails(t *testing.T) {
 	t.Parallel()
 
-	absTemplate := filepath.Join(t.TempDir(), "local.yaml")
-	writeFile(t, absTemplate, "secret: 1\n")
-	remote := newFakeRemote(t, nil)
+	tests := []struct {
+		name string
+		spec string
+	}{
+		{name: "HTTP spec", spec: "https://example.com/spec.yaml"},
+		{name: "GitHub spec", spec: "github.com/u/r/dir@v1"},
+	}
 
-	got, err := remote.resolver().LoadSpecTemplate("https://example.com/spec.yaml", absTemplate, "")
-	assertContent(t, got, err, "secret: 1\n")
-	assertURLs(t, remote.requestedURLs())
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			absTemplate := filepath.Join(t.TempDir(), "local.yaml")
+			writeFile(t, absTemplate, "secret: 1\n")
+			remote := newFakeRemote(t, nil)
+
+			got, err := remote.resolver().LoadSpecTemplate(tt.spec, absTemplate, "")
+			assertErrorContains(t, err, absTemplate)
+			assertErrorContains(t, err, "remote specs cannot reference local files")
+			if got != nil {
+				t.Fatalf("content = %q, want nil", got)
+			}
+			assertURLs(t, remote.requestedURLs())
+		})
+	}
+}
+
+func TestLoadTemplate_AbsolutePath_ReadAsIs(t *testing.T) {
+	t.Parallel()
+
+	absTemplate := filepath.Join(t.TempDir(), "t.yaml")
+	writeFile(t, absTemplate, "a: 1\n")
+
+	got, err := LoadTemplate(absTemplate, "")
+	assertContent(t, got, err, "a: 1\n")
 }
 
 func TestLoadTemplate_RelativeToWorkingDirectory(t *testing.T) {

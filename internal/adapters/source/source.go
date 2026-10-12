@@ -152,6 +152,9 @@ func (r resolver) LoadSpecTemplate(specLocation string, templatePath string, tok
 	if err != nil {
 		return nil, err
 	}
+	if !spec.local && filepath.IsAbs(templatePath) {
+		return nil, fmt.Errorf("template %s: remote specs cannot reference local files", templatePath)
+	}
 	return r.loadTemplate(spec.baseDir, templatePath, token)
 }
 
@@ -165,8 +168,8 @@ func (r resolver) LoadTemplate(templateLocation string, token string) ([]byte, e
 func (r resolver) loadTemplate(baseDir string, templatePath string, token string) ([]byte, error) {
 	slog.Debug("Loading template", "templatePath", templatePath, "baseDir", baseDir)
 
-	// An absolute path is read from disk even when baseDir is remote (fix
-	// task: remote-spec-local-template).
+	// An absolute path is read from disk; LoadSpecTemplate rejects one listed
+	// in a remote spec before it gets here.
 	if _, ok := parseGitHubURL(templatePath); ok || isRemotePath(templatePath) || filepath.IsAbs(templatePath) {
 		return r.acquire(templatePath, token)
 	}
