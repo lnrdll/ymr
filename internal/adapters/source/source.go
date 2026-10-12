@@ -74,6 +74,7 @@ type specSource struct {
 	file    string // local path or URL of the spec itself
 	baseDir string // local directory or URL relative templates join onto
 	readErr string // format wrapping a read error, naming file
+	local   bool   // file is read from disk rather than fetched
 }
 
 // resolveSpec checks GitHub forms first, then an existing local path, then
@@ -93,12 +94,14 @@ func resolveSpec(specLocation string) (specSource, error) {
 				file:    filepath.Join(specLocation, "spec.yaml"),
 				baseDir: specLocation,
 				readErr: "opening local spec %s: %w",
+				local:   true,
 			}, nil
 		}
 		return specSource{
 			file:    specLocation,
 			baseDir: filepath.Dir(specLocation),
 			readErr: "opening local spec %s: %w",
+			local:   true,
 		}, nil
 	}
 
@@ -112,7 +115,7 @@ func resolveSpec(specLocation string) (specSource, error) {
 		baseURL.RawQuery = ""
 		baseURL.Fragment = ""
 		return specSource{
-			file:    specLocation,
+			file:    specURL.String(),
 			baseDir: baseURL.String(),
 			readErr: "fetching spec from %s: %w",
 		}, nil
@@ -128,7 +131,14 @@ func (r resolver) LoadSpec(specLocation string, token string) (*config.SpecConfi
 	}
 	slog.Debug("Loading spec", "specLocation", specLocation, "file", spec.file)
 
-	content, err := r.read(spec.file, token)
+	// A local spec is never fetched, even when its path looks like a URL, and
+	// a remote one is fetched as a spec, as the old loaders did.
+	var content []byte
+	if spec.local {
+		content, err = os.ReadFile(spec.file)
+	} else {
+		content, err = r.fetch(spec.file, token, true)
+	}
 	if err != nil {
 		return nil, fmt.Errorf(spec.readErr, spec.file, err)
 	}

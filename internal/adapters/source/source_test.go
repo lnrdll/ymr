@@ -207,6 +207,38 @@ func TestLoadSpec_HTTPNon200_FailsNamingURL(t *testing.T) {
 	assertErrorContains(t, err, "fetching spec from https://example.com/spec.yaml: bad response from server for https://example.com/spec.yaml: 404 Not Found")
 }
 
+func TestLoadSpec_HTTPNon200_NamesNormalizedURL(t *testing.T) {
+	t.Parallel()
+
+	remote := newFakeRemote(t, nil)
+
+	_, err := remote.resolver().LoadSpec("https://example.com/my specs/spec.yaml", "")
+	assertErrorContains(t, err, "fetching spec from https://example.com/my%20specs/spec.yaml: bad response from server for https://example.com/my%20specs/spec.yaml")
+}
+
+// An HTTP spec URL that only becomes a GitHub repo URL once normalized is
+// fetched as a spec, so it loads the repo-root spec.yaml.
+func TestLoadSpec_HTTPNormalizedToGitHubRepo_FetchesRawSpecURL(t *testing.T) {
+	t.Parallel()
+
+	remote := newFakeRemote(t, map[string]string{"raw.githubusercontent.com/u/r/main/spec.yaml": specYAML})
+
+	cfg, err := remote.resolver().LoadSpec("https://github.com/u/r/#", "")
+	assertSpecLoaded(t, cfg, err)
+	assertURLs(t, remote.requestedURLs(), "https://raw.githubusercontent.com/u/r/main/spec.yaml")
+}
+
+func TestLoadSpec_ExistingLocalPathLookingLikeURL_ReadFromDisk(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, filepath.Join(dir, "http:", "host", "spec.yaml"), specYAML)
+	t.Chdir(dir)
+	remote := newFakeRemote(t, nil)
+
+	cfg, err := remote.resolver().LoadSpec("http://host/spec.yaml", "")
+	assertSpecLoaded(t, cfg, err)
+	assertURLs(t, remote.requestedURLs())
+}
+
 func TestLoadSpec_GitHubForms_FetchRawSpecURL(t *testing.T) {
 	t.Parallel()
 
@@ -604,16 +636,26 @@ func TestLoadParamsAndValidations_RemoteForms_FetchRawURL(t *testing.T) {
 			t.Parallel()
 
 			host, path, _ := strings.Cut(strings.TrimPrefix(tt.wantURL, "https://"), "/")
-			remote := newFakeRemote(t, map[string]string{host + "/" + path: "[]\n"})
-			r := remote.resolver()
 
-			if _, err := r.LoadParams(tt.location, ""); err == nil {
-				t.Fatalf("LoadParams: expected a list to fail decoding into a map")
+			paramsRemote := newFakeRemote(t, map[string]string{host + "/" + path: "name: web\n"})
+			params, err := paramsRemote.resolver().LoadParams(tt.location, "")
+			if err != nil {
+				t.Fatalf("LoadParams err = %v", err)
 			}
-			if _, err := r.LoadValidations(tt.location, ""); err != nil {
+			if want := map[string]any{"name": "web"}; !reflect.DeepEqual(params, want) {
+				t.Fatalf("params = %#v, want %#v", params, want)
+			}
+			assertURLs(t, paramsRemote.requestedURLs(), tt.wantURL)
+
+			validationsRemote := newFakeRemote(t, map[string]string{host + "/" + path: "- rule: params.ok\n"})
+			validations, err := validationsRemote.resolver().LoadValidations(tt.location, "")
+			if err != nil {
 				t.Fatalf("LoadValidations err = %v", err)
 			}
-			assertURLs(t, remote.requestedURLs(), tt.wantURL, tt.wantURL)
+			if want := []config.Validation{{Rule: "params.ok"}}; !reflect.DeepEqual(validations, want) {
+				t.Fatalf("validations = %#v, want %#v", validations, want)
+			}
+			assertURLs(t, validationsRemote.requestedURLs(), tt.wantURL)
 		})
 	}
 }
