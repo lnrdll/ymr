@@ -14,7 +14,7 @@ import (
 func processTemplates(
 	deps appDeps,
 	specConfig *config.SpecConfig,
-	loader ports.SourceLoader,
+	specLocation string,
 	token string,
 	targetsToRender []string,
 	paramLookup map[string]map[string]any,
@@ -27,7 +27,7 @@ func processTemplates(
 	err := walkTemplateTargets(
 		deps,
 		specConfig,
-		loader,
+		specLocation,
 		token,
 		targetsToRender,
 		paramLookup,
@@ -51,7 +51,7 @@ func processTemplates(
 func validateTemplates(
 	deps appDeps,
 	specConfig *config.SpecConfig,
-	loader ports.SourceLoader,
+	specLocation string,
 	token string,
 	targets []string,
 	paramLookup map[string]map[string]any,
@@ -62,7 +62,7 @@ func validateTemplates(
 	return walkTemplateTargets(
 		deps,
 		specConfig,
-		loader,
+		specLocation,
 		token,
 		targets,
 		paramLookup,
@@ -77,7 +77,7 @@ func validateTemplates(
 func walkTemplateTargets(
 	deps appDeps,
 	specConfig *config.SpecConfig,
-	loader ports.SourceLoader,
+	specLocation string,
 	token string,
 	targets []string,
 	paramLookup map[string]map[string]any,
@@ -90,22 +90,7 @@ func walkTemplateTargets(
 	var errs []error
 
 	for _, templatePath := range specConfig.Templates {
-		loaderToUse := loader
-		if overrideTemplate != "" {
-			cwd, err := deps.runtime.Getwd()
-			if err != nil {
-				if strict {
-					errs = append(errs, fmt.Errorf("resolving working directory: %w", err))
-				}
-				if !strict || warnOnStrict {
-					slog.Warn("Skipping template due to working directory error", "template", templatePath, "error", err)
-				}
-				continue
-			}
-			loaderToUse = deps.source.NewLocalLoader(cwd)
-		}
-
-		content, err := deps.source.LoadTemplate(loaderToUse, templatePath, token)
+		content, err := loadTemplateContent(deps.source, specLocation, templatePath, overrideTemplate, token)
 		if err != nil {
 			if strict {
 				errs = append(errs, fmt.Errorf("loading template '%s': %w", templatePath, err))
@@ -143,4 +128,13 @@ func walkTemplateTargets(
 	}
 
 	return nil
+}
+
+// loadTemplateContent resolves a --template override (spec mode or spec-less)
+// against the working directory and a spec-listed template against the spec.
+func loadTemplateContent(source ports.SourcePort, specLocation string, templatePath string, overrideTemplate string, token string) ([]byte, error) {
+	if overrideTemplate != "" {
+		return source.LoadTemplate(templatePath, token)
+	}
+	return source.LoadSpecTemplate(specLocation, templatePath, token)
 }

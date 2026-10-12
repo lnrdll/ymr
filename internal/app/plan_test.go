@@ -73,8 +73,8 @@ func TestPreparePlan_LoadsValidationOverride(t *testing.T) {
 		t.Fatalf("preparePlan: %v", err)
 	}
 
-	if plan.Loader == nil {
-		t.Fatalf("expected loader to be set")
+	if len(plan.SpecConfig.Templates) != 1 || plan.SpecConfig.Templates[0] != "t.yaml" {
+		t.Fatalf("expected spec to be loaded, got %#v", plan.SpecConfig)
 	}
 	if len(plan.Validations) != 1 || plan.Validations[0].Message != "override" {
 		t.Fatalf("expected validation override to be loaded, got %#v", plan.Validations)

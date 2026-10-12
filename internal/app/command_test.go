@@ -1,58 +1,49 @@
 package app
 
 import (
+	"reflect"
 	"testing"
 
 	config "github.com/lnrdll/ymr/internal/domain/config"
 	"github.com/lnrdll/ymr/internal/ports"
 )
 
-type fakeLoader struct {
-	specConfig *config.SpecConfig
+type specTemplateCall struct {
+	specLocation string
+	templatePath string
 }
 
-func (f *fakeLoader) LoadSpec(token string) (*config.SpecConfig, error) {
+type fakeSourcePort struct {
+	specConfig        *config.SpecConfig
+	templateBytes     []byte
+	params            map[string]any
+	validations       []config.Validation
+	templateCalls     []string
+	specTemplateCalls []specTemplateCall
+}
+
+func (f *fakeSourcePort) LoadSpec(specLocation string, token string) (*config.SpecConfig, error) {
 	if f.specConfig == nil {
 		return &config.SpecConfig{}, nil
 	}
 	return f.specConfig, nil
 }
 
-func (f *fakeLoader) GetBasePath() string {
-	return ""
+func (f *fakeSourcePort) LoadSpecTemplate(specLocation string, templatePath string, token string) ([]byte, error) {
+	f.specTemplateCalls = append(f.specTemplateCalls, specTemplateCall{specLocation: specLocation, templatePath: templatePath})
+	return f.template(), nil
 }
 
-type fakeSourcePort struct {
-	newLoader      ports.SourceLoader
-	localLoader    ports.SourceLoader
-	templateBytes  []byte
-	params         map[string]any
-	validations    []config.Validation
-	loadTplCalls   int
-	newLoaderCalls int
+func (f *fakeSourcePort) LoadTemplate(templateLocation string, token string) ([]byte, error) {
+	f.templateCalls = append(f.templateCalls, templateLocation)
+	return f.template(), nil
 }
 
-func (f *fakeSourcePort) NewSourceLoader(path string, token string) (ports.SourceLoader, error) {
-	f.newLoaderCalls++
-	if f.newLoader == nil {
-		return &fakeLoader{}, nil
-	}
-	return f.newLoader, nil
-}
-
-func (f *fakeSourcePort) NewLocalLoader(baseDir string) ports.SourceLoader {
-	if f.localLoader == nil {
-		return &fakeLoader{}
-	}
-	return f.localLoader
-}
-
-func (f *fakeSourcePort) LoadTemplate(loader ports.SourceLoader, templatePath string, token string) ([]byte, error) {
-	f.loadTplCalls++
+func (f *fakeSourcePort) template() []byte {
 	if f.templateBytes == nil {
-		return []byte("x: y\n"), nil
+		return []byte("x: y\n")
 	}
-	return f.templateBytes, nil
+	return f.templateBytes
 }
 
 func (f *fakeSourcePort) LoadValidations(filePath string, token string) ([]config.Validation, error) {
@@ -111,16 +102,7 @@ func (f *fakeOutputPort) Write(outputs []ports.RenderedOutput, terminalOutput bo
 	return f.returnedError
 }
 
-type fakeRuntimePort struct {
-	cwd string
-}
-
-func (f *fakeRuntimePort) Getwd() (string, error) {
-	if f.cwd == "" {
-		return "/tmp", nil
-	}
-	return f.cwd, nil
-}
+type fakeRuntimePort struct{}
 
 func (f *fakeRuntimePort) Getenv(key string) string {
 	if key == "GITHUB_TOKEN" {
@@ -136,7 +118,7 @@ func TestRunCommand_UsesInjectedPorts(t *testing.T) {
 	fProcessor := &fakeProcessorPort{}
 	fValidationPort := &fakeValidationPort{engine: &fakeValidationEngine{}}
 	fOutput := &fakeOutputPort{}
-	fRuntime := &fakeRuntimePort{cwd: "/work"}
+	fRuntime := &fakeRuntimePort{}
 
 	cmd := &runCommand{
 		cfg: Config{
@@ -157,8 +139,11 @@ func TestRunCommand_UsesInjectedPorts(t *testing.T) {
 		t.Fatalf("Execute() error = %v", err)
 	}
 
-	if fSource.loadTplCalls != 1 {
-		t.Fatalf("LoadTemplate calls = %d, want 1", fSource.loadTplCalls)
+	if len(fSource.templateCalls) != 1 || fSource.templateCalls[0] != "template.yaml" {
+		t.Fatalf("LoadTemplate calls = %#v, want [template.yaml]", fSource.templateCalls)
+	}
+	if len(fSource.specTemplateCalls) != 0 {
+		t.Fatalf("LoadSpecTemplate calls = %#v, want none", fSource.specTemplateCalls)
 	}
 	if fProcessor.calls != 1 {
 		t.Fatalf("ProcessContent calls = %d, want 1", fProcessor.calls)
@@ -180,12 +165,10 @@ func TestRunCommand_UsesInjectedPorts(t *testing.T) {
 func TestRunCommand_ValidateOnly_StrictUnmatchedTargetsStillFails(t *testing.T) {
 	t.Parallel()
 
-	loader := &fakeLoader{specConfig: &config.SpecConfig{
+	fSource := &fakeSourcePort{specConfig: &config.SpecConfig{
 		Templates: []string{"template.yaml"},
 		TargetIds: []string{"dev"},
 	}}
-
-	fSource := &fakeSourcePort{newLoader: loader}
 
 	cmd := &runCommand{
 		cfg: Config{
@@ -210,5 +193,67 @@ func TestRunCommand_ValidateOnly_StrictUnmatchedTargetsStillFails(t *testing.T) 
 	}
 	if err.Error() != "no requested targets matched spec targetIds" {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestRunCommand_SpecModeTemplateOrigin(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name              string
+		overrideTemplate  string
+		wantTemplateCalls []string
+		wantSpecTemplates []specTemplateCall
+	}{
+		{
+			name:              "spec templates resolve against the spec",
+			wantSpecTemplates: []specTemplateCall{{specLocation: "specs/app", templatePath: "deploy.yaml"}},
+		},
+		{
+			name:              "template override resolves against the working directory",
+			overrideTemplate:  "override.yaml",
+			wantTemplateCalls: []string{"override.yaml"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			fSource := &fakeSourcePort{specConfig: &config.SpecConfig{
+				Templates: []string{"deploy.yaml"},
+				TargetIds: []string{"dev"},
+			}}
+			fOutput := &fakeOutputPort{}
+
+			cmd := &runCommand{
+				cfg: Config{
+					IsSpecFile:       true,
+					SpecFile:         "specs/app",
+					OverrideTemplate: tt.overrideTemplate,
+				},
+				deps: appDeps{
+					source:     fSource,
+					processor:  &fakeProcessorPort{},
+					validation: &fakeValidationPort{engine: &fakeValidationEngine{}},
+					output:     fOutput,
+					runtime:    &fakeRuntimePort{},
+				},
+			}
+
+			if err := cmd.Execute(); err != nil {
+				t.Fatalf("Execute() error = %v", err)
+			}
+
+			if !reflect.DeepEqual(fSource.templateCalls, tt.wantTemplateCalls) {
+				t.Fatalf("LoadTemplate calls = %#v, want %#v", fSource.templateCalls, tt.wantTemplateCalls)
+			}
+			if !reflect.DeepEqual(fSource.specTemplateCalls, tt.wantSpecTemplates) {
+				t.Fatalf("LoadSpecTemplate calls = %#v, want %#v", fSource.specTemplateCalls, tt.wantSpecTemplates)
+			}
+			if len(fOutput.outputs) != 1 {
+				t.Fatalf("outputs = %d, want 1", len(fOutput.outputs))
+			}
+		})
 	}
 }

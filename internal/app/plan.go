@@ -2,13 +2,11 @@ package app
 
 import (
 	config "github.com/lnrdll/ymr/internal/domain/config"
-	"github.com/lnrdll/ymr/internal/ports"
 )
 
 type executionPlan struct {
 	Token          string
 	SpecConfig     *config.SpecConfig
-	Loader         ports.SourceLoader
 	ParamLookup    map[string]map[string]any
 	ParamsOverride map[string]any
 	Targets        []string
@@ -22,7 +20,7 @@ func preparePlan(cfg Config) (*executionPlan, error) {
 func preparePlanWithDeps(cfg Config, deps appDeps) (*executionPlan, error) {
 	token := getGithubTokenWithRuntime(cfg.GithubToken, deps.runtime)
 
-	specConfig, loader, err := loadSpecConfigWithDeps(cfg, token, deps)
+	specConfig, err := loadSpecConfigWithDeps(cfg, token, deps)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +46,6 @@ func preparePlanWithDeps(cfg Config, deps appDeps) (*executionPlan, error) {
 	return &executionPlan{
 		Token:          token,
 		SpecConfig:     specConfig,
-		Loader:         loader,
 		ParamLookup:    paramLookup,
 		ParamsOverride: paramsOverride,
 		Targets:        targets,

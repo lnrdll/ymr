@@ -5,24 +5,18 @@ import (
 	"log/slog"
 
 	config "github.com/lnrdll/ymr/internal/domain/config"
-	"github.com/lnrdll/ymr/internal/ports"
 )
 
-func loadSpecConfigWithDeps(cfg Config, token string, deps appDeps) (*config.SpecConfig, ports.SourceLoader, error) {
+func loadSpecConfigWithDeps(cfg Config, token string, deps appDeps) (*config.SpecConfig, error) {
 	if cfg.IsSpecFile {
-		slog.Debug("Using source loader", "source", cfg.SpecFile)
+		slog.Debug("Loading spec", "source", cfg.SpecFile)
 
-		loader, err := deps.source.NewSourceLoader(cfg.SpecFile, token)
+		specConfig, err := deps.source.LoadSpec(cfg.SpecFile, token)
 		if err != nil {
-			return nil, nil, err
+			return nil, fmt.Errorf("loading spec file: %w", err)
 		}
 
-		specConfig, err := loader.LoadSpec(token)
-		if err != nil {
-			return nil, nil, fmt.Errorf("loading spec file: %w", err)
-		}
-
-		return specConfig, loader, nil
+		return specConfig, nil
 	}
 
 	targetIds := []string{""}
@@ -36,15 +30,9 @@ func loadSpecConfigWithDeps(cfg Config, token string, deps appDeps) (*config.Spe
 		Parameters: []config.ParamSet{},
 	}
 
-	cwd, err := deps.runtime.Getwd()
-	if err != nil {
-		return nil, nil, fmt.Errorf("resolving working directory: %w", err)
-	}
-	loader := deps.source.NewLocalLoader(cwd)
+	slog.Debug("Running in spec-less mode", "template", cfg.OverrideTemplate)
 
-	slog.Debug("Running in spec-less mode", "loader", loader)
-
-	return specConfig, loader, nil
+	return specConfig, nil
 }
 
 func applyTemplateOverride(specConfig *config.SpecConfig, overrideTemplate string) {

@@ -5,11 +5,11 @@ import (
 )
 
 type SourcePort interface {
-	NewSourceLoader(path string, token string) (SourceLoader, error)
-	NewLocalLoader(baseDir string) SourceLoader
-	LoadTemplate(loader SourceLoader, templatePath string, token string) ([]byte, error)
-	LoadValidations(filePath string, token string) ([]config.Validation, error)
-	LoadParams(filePath string, token string) (map[string]any, error)
+	LoadSpec(specLocation string, token string) (*config.SpecConfig, error)
+	LoadSpecTemplate(specLocation string, templatePath string, token string) ([]byte, error)
+	LoadTemplate(templateLocation string, token string) ([]byte, error)
+	LoadParams(location string, token string) (map[string]any, error)
+	LoadValidations(location string, token string) ([]config.Validation, error)
 }
 
 type ProcessorPort interface {
@@ -29,6 +29,5 @@ type OutputPort interface {
 }
 
 type RuntimePort interface {
-	Getwd() (string, error)
 	Getenv(key string) string
 }

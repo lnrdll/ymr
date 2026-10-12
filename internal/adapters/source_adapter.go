@@ -12,22 +12,22 @@ func NewSourceAdapter() ports.SourcePort {
 	return sourceAdapter{}
 }
 
-func (sourceAdapter) NewSourceLoader(path string, token string) (ports.SourceLoader, error) {
-	return source.NewSourceLoader(path, token)
+func (sourceAdapter) LoadSpec(specLocation string, token string) (*config.SpecConfig, error) {
+	return source.LoadSpec(specLocation, token)
 }
 
-func (sourceAdapter) NewLocalLoader(baseDir string) ports.SourceLoader {
-	return &source.LocalLoader{BaseDir: baseDir, SpecPath: ""}
+func (sourceAdapter) LoadSpecTemplate(specLocation string, templatePath string, token string) ([]byte, error) {
+	return source.LoadSpecTemplate(specLocation, templatePath, token)
 }
 
-func (sourceAdapter) LoadTemplate(loader ports.SourceLoader, templatePath string, token string) ([]byte, error) {
-	return source.LoadTemplateWithLoader(loader, templatePath, token)
+func (sourceAdapter) LoadTemplate(templateLocation string, token string) ([]byte, error) {
+	return source.LoadTemplate(templateLocation, token)
 }
 
-func (sourceAdapter) LoadValidations(filePath string, token string) ([]config.Validation, error) {
-	return source.LoadValidations(filePath, token)
+func (sourceAdapter) LoadParams(location string, token string) (map[string]any, error) {
+	return source.LoadParams(location, token)
 }
 
-func (sourceAdapter) LoadParams(filePath string, token string) (map[string]any, error) {
-	return source.LoadParams(filePath, token)
+func (sourceAdapter) LoadValidations(location string, token string) ([]config.Validation, error) {
+	return source.LoadValidations(location, token)
 }

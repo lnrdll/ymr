@@ -40,7 +40,7 @@ func (c *runCommand) Execute() error {
 	allOutputs, renderErr := processTemplates(
 		c.deps,
 		plan.SpecConfig,
-		plan.Loader,
+		c.cfg.SpecFile,
 		plan.Token,
 		plan.Targets,
 		plan.ParamLookup,
@@ -61,5 +61,5 @@ func (c *runCommand) executeValidationOnly(plan *executionPlan) error {
 		return fmt.Errorf("no requested targets matched spec targetIds")
 	}
 
-	return validateTemplates(c.deps, plan.SpecConfig, plan.Loader, plan.Token, targetsToValidate, plan.ParamLookup, plan.ParamsOverride, c.cfg.OverrideTemplate, c.cfg.Strict)
+	return validateTemplates(c.deps, plan.SpecConfig, c.cfg.SpecFile, plan.Token, targetsToValidate, plan.ParamLookup, plan.ParamsOverride, c.cfg.OverrideTemplate, c.cfg.Strict)
 }
