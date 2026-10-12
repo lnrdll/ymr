@@ -81,9 +81,10 @@ type specSource struct {
 // HTTP(S).
 func resolveSpec(specLocation string) (specSource, error) {
 	if gh, ok := parseGitHubURL(specLocation); ok {
+		specPath := gh.specPath()
 		return specSource{
-			file:    gh.rawContentURL("spec.yaml", true),
-			baseDir: gh.rawContentURL("", false),
+			file:    gh.rawURL(specPath),
+			baseDir: gh.rawURL(path.Dir(specPath)),
 			readErr: "fetching spec from GitHub %s: %w",
 		}, nil
 	}

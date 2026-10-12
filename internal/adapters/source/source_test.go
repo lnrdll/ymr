@@ -278,18 +278,39 @@ func TestLoadSpec_GitHubForms_FetchRawSpecURL(t *testing.T) {
 			wantURL:  "https://raw.githubusercontent.com/u/r/v1/spec.yaml",
 		},
 		{
-			// Bug: the blob path is ignored and the repo-root spec.yaml is
-			// loaded. Fix task: github-spec-locations.
-			name:     "blob loads repo-root spec",
-			location: "https://github.com/u/r/blob/v1/dir/custom.yaml",
-			wantURL:  "https://raw.githubusercontent.com/u/r/v1/spec.yaml",
+			name:     "tree ref with dir",
+			location: "https://github.com/u/r/tree/v1/a/dir",
+			wantURL:  "https://raw.githubusercontent.com/u/r/v1/a/dir/spec.yaml",
 		},
 		{
-			// Bug: a file path in the @ref form is treated as a directory.
-			// Fix task: github-spec-locations.
-			name:     "file at ref is treated as a directory",
-			location: "github.com/u/r/dir/spec.yaml@v1",
-			wantURL:  "https://raw.githubusercontent.com/u/r/v1/dir/spec.yaml/spec.yaml",
+			name:     "tree ref with dir and trailing slash",
+			location: "https://github.com/u/r/tree/v1/dir/",
+			wantURL:  "https://raw.githubusercontent.com/u/r/v1/dir/spec.yaml",
+		},
+		{
+			name:     "blob loads that file",
+			location: "https://github.com/u/r/blob/v1/dir/custom.yaml",
+			wantURL:  "https://raw.githubusercontent.com/u/r/v1/dir/custom.yaml",
+		},
+		{
+			name:     "blob at repo root",
+			location: "https://github.com/u/r/blob/v1/custom.yaml",
+			wantURL:  "https://raw.githubusercontent.com/u/r/v1/custom.yaml",
+		},
+		{
+			name:     "scheme-less yaml file at ref",
+			location: "github.com/u/r/dir/custom.yaml@v1",
+			wantURL:  "https://raw.githubusercontent.com/u/r/v1/dir/custom.yaml",
+		},
+		{
+			name:     "https yml file at ref",
+			location: "https://github.com/u/r/dir/custom.yml@v1",
+			wantURL:  "https://raw.githubusercontent.com/u/r/v1/dir/custom.yml",
+		},
+		{
+			name:     "non-yaml path at ref is a directory",
+			location: "github.com/u/r/dir.d/spec.json@v1",
+			wantURL:  "https://raw.githubusercontent.com/u/r/v1/dir.d/spec.json/spec.yaml",
 		},
 	}
 
@@ -305,18 +326,6 @@ func TestLoadSpec_GitHubForms_FetchRawSpecURL(t *testing.T) {
 			assertURLs(t, remote.requestedURLs(), tt.wantURL)
 		})
 	}
-}
-
-// Bug: a /tree/<ref>/<dir> URL is not recognised as GitHub and is fetched as
-// a plain HTTP page. Fix task: github-spec-locations.
-func TestLoadSpec_GitHubTreeDir_FetchedAsPlainHTTP(t *testing.T) {
-	t.Parallel()
-
-	remote := newFakeRemote(t, map[string]string{"github.com/u/r/tree/v1/dir": specYAML})
-
-	cfg, err := remote.resolver().LoadSpec("https://github.com/u/r/tree/v1/dir", "")
-	assertSpecLoaded(t, cfg, err)
-	assertURLs(t, remote.requestedURLs(), "https://github.com/u/r/tree/v1/dir")
 }
 
 func TestLoadSpec_GitHubNon200_FailsNamingRawURL(t *testing.T) {
@@ -419,11 +428,39 @@ func TestLoadSpecTemplate_RemoteSpecs_ResolveRelativeToSpec(t *testing.T) {
 			wantURL:  "https://raw.githubusercontent.com/u/r/main/tpl/t.yaml",
 		},
 		{
-			// Bug: templates resolve under the blob file itself. Fix task:
-			// github-spec-locations.
-			name:     "GitHub blob resolves under the blob file",
+			name:     "GitHub https dir at ref",
+			location: "https://github.com/u/r/dir@v1",
+			wantURL:  "https://raw.githubusercontent.com/u/r/v1/dir/tpl/t.yaml",
+		},
+		{
+			name:     "GitHub tree ref",
+			location: "https://github.com/u/r/tree/v1",
+			wantURL:  "https://raw.githubusercontent.com/u/r/v1/tpl/t.yaml",
+		},
+		{
+			name:     "GitHub tree ref with dir",
+			location: "https://github.com/u/r/tree/v1/a/dir",
+			wantURL:  "https://raw.githubusercontent.com/u/r/v1/a/dir/tpl/t.yaml",
+		},
+		{
+			name:     "GitHub blob resolves against the file's directory",
 			location: "https://github.com/u/r/blob/v1/dir/spec.yaml",
-			wantURL:  "https://raw.githubusercontent.com/u/r/v1/dir/spec.yaml/tpl/t.yaml",
+			wantURL:  "https://raw.githubusercontent.com/u/r/v1/dir/tpl/t.yaml",
+		},
+		{
+			name:     "GitHub blob at repo root",
+			location: "https://github.com/u/r/blob/v1/spec.yaml",
+			wantURL:  "https://raw.githubusercontent.com/u/r/v1/tpl/t.yaml",
+		},
+		{
+			name:     "GitHub scheme-less yaml file at ref",
+			location: "github.com/u/r/dir/custom.yaml@v1",
+			wantURL:  "https://raw.githubusercontent.com/u/r/v1/dir/tpl/t.yaml",
+		},
+		{
+			name:     "GitHub https yml file at ref",
+			location: "https://github.com/u/r/dir/custom.yml@v1",
+			wantURL:  "https://raw.githubusercontent.com/u/r/v1/dir/tpl/t.yaml",
 		},
 	}
 

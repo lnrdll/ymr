@@ -19,6 +19,7 @@ const defaultHTTPTimeout = 30 * time.Second
 
 var githubBlobRegex = regexp.MustCompile(`^https?://github\.com/([^/]+)/([^/]+)/blob/([^/]+)/(.+)`)
 var githubRepoRegex = regexp.MustCompile(`^https?://github\.com/([^/]+)/([^/@]+)(?:/tree/([^/]+))?/?$`)
+var githubTreeDirRegex = regexp.MustCompile(`^https?://github\.com/([^/]+)/([^/@]+)/tree/([^/]+)/(.+?)/?$`)
 var githubSourceRegex = regexp.MustCompile(`^(?:https?://)?github\.com/([^/]+)/([^/@]+)(?:/([^@]+))?@(.+)`)
 
 func parseGitHubURL(rawURL string) (githubLocation, bool) {
@@ -32,6 +33,10 @@ func parseGitHubURL(rawURL string) (githubLocation, bool) {
 			branch = matches[3]
 		}
 		return githubLocation{User: matches[1], Repo: matches[2], Ref: branch}, true
+	}
+
+	if matches := githubTreeDirRegex.FindStringSubmatch(rawURL); len(matches) == 5 {
+		return githubLocation{User: matches[1], Repo: matches[2], Ref: matches[3], Subdir: matches[4]}, true
 	}
 
 	if matches := githubSourceRegex.FindStringSubmatch(rawURL); len(matches) == 5 {
@@ -62,7 +67,7 @@ func (r resolver) fetch(rawURL string, token string, isSpec bool) ([]byte, error
 
 	transformedURL := rawURL
 	if ghl, ok := parseGitHubURL(rawURL); ok {
-		transformedURL = ghl.rawContentURL("", isSpec)
+		transformedURL = ghl.rawContentURL(isSpec)
 	}
 
 	req, err := http.NewRequest("GET", transformedURL, nil)
