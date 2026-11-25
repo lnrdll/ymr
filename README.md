@@ -14,6 +14,7 @@
 ---
 
 **TOC**
+
 - [Why?](#why)
 - [How it Works](#how-it-works)
 - [Agent Notes](#agent-notes)
@@ -29,6 +30,7 @@
 ---
 
 ### Why?
+
 <a name="why"></a>
 
 Existing YAML templating tools — such as `jtt`, `Helm`, `Kustomize`, or `Kluctl` — are powerful and versatile, but they often come with a steep learning curve and impose specific formatting or structural requirements on your YAML files.
@@ -38,6 +40,7 @@ Existing YAML templating tools — such as `jtt`, `Helm`, `Kustomize`, or `Kluct
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### How it Works
+
 <a name="how-it-works"></a>
 
 `ymr` processes YAML templates by substituting placeholders with values from your spec.yaml. It supports two main types of placeholders:
@@ -59,6 +62,7 @@ Validations are also available if there is a need to enforce requirements. The p
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Agent Notes
+
 <a name="agent-notes"></a>
 
 If you're using `ymr` from an AI agent / coding assistant, read these first:
@@ -69,6 +73,7 @@ If you're using `ymr` from an AI agent / coding assistant, read these first:
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Spec-less Mode
+
 <a name="spec-less-mode"></a>
 
 `ymr` can be run **without** a `--spec` (`-s`) flag (spec-less mode), which is useful for simple, one-off template rendering. In this mode, you must provide:
@@ -81,11 +86,13 @@ This mode is ideal for CI/CD pipelines or simple scripts where a full `spec.yaml
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Installation
+
 <a name="installation"></a>
 
 #### `go install`
 
 You can install `ymr` using `go install`:
+
 ```bash
 go install github.com/lnrdll/ymr@latest
 ```
@@ -93,6 +100,7 @@ go install github.com/lnrdll/ymr@latest
 #### `Mise`
 
 You can install 'ymr' using `Mise`:
+
 ```bash
 [tools]
 "github:lnrdll/ymr" = "latest"
@@ -103,12 +111,14 @@ Alternatively, you can download the binary from the [releases page](https://gith
 #### Build from source
 
 Build for your current platform:
+
 ```bash
 mkdir -p dist
 go build -trimpath -o dist/ymr .
 ```
 
 Build release-style artifacts for linux/windows/darwin on amd64 and arm64:
+
 ```bash
 bash scripts/build-all.sh
 ```
@@ -118,6 +128,7 @@ Artifacts are written to `dist/`.
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Development
+
 <a name="development"></a>
 
 Useful commands when working on `ymr` itself:
@@ -137,6 +148,7 @@ Note: `mise` task definitions live in `mise.toml`.
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Usage
+
 <a name="usage"></a>
 
 `ymr` provides three commands: `init`, `run`, and `version`.
@@ -239,17 +251,17 @@ ymr run [flags]
 
 **Flags:**
 
-*   `-s`, `--spec <path>`: Source path for `spec.yaml` (local dir/file, http(s) URL, or GitHub). When omitted, `ymr` runs in spec-less mode.
-*   `-T`, `--template <path>`: A single template file/URL to override the `templates` list in the spec.
-*   `-o`, `--output <directory>`: Output directory for rendered files. Use `-` for stdout.
-*   `-p`, `--param <key=value>`: Override a parameter (e.g., `key=value`). Can be used multiple times.
-*   `--param-file <path|url>`: Override parameters from a YAML/JSON mapping file (local path or URL). Can be used multiple times.
-*   `--param-yaml <yaml>`: Override parameters from an inline YAML/JSON mapping. Can be used multiple times.
-*   `-t`, `--target <id>`: Override which targets to render. Can be used multiple times.
-*   `--token <token>`: GitHub token for accessing private repositories (or use `GITHUB_TOKEN` environment variable).
-*   `--validation <path>`: Path to a policy file. If provided, this will override any validations in the spec file.
-*   `--strict`: Fail the run if any template/target render step errors (including missing `from-param` keys and directive template execution errors). By default, `ymr` runs in best-effort mode: directive failures preserve defaults, and failed templates/targets are skipped.
-*   `--debug`: Enable debug logging.
+- `-s`, `--spec <path>`: Source path for `spec.yaml` (local dir/file, http(s) URL, or GitHub). When omitted, `ymr` runs in spec-less mode.
+- `-T`, `--template <path>`: A single template file/URL to override the `templates` list in the spec.
+- `-o`, `--output <directory>`: Output directory for rendered files. Use `-` for stdout.
+- `-p`, `--param <key=value>`: Override a parameter (e.g., `key=value`). Can be used multiple times.
+- `--param-file <path|url>`: Override parameters from a YAML/JSON mapping file (local path or URL). Can be used multiple times.
+- `--param-yaml <yaml>`: Override parameters from an inline YAML/JSON mapping. Can be used multiple times.
+- `-t`, `--target <id>`: Override which targets to render. Can be used multiple times.
+- `--token <token>`: GitHub token for accessing private repositories (or use `GITHUB_TOKEN` environment variable).
+- `--validation <path>`: Path to a policy file. If provided, this will override any validations in the spec file.
+- `--strict`: Fail the run if any template/target render step errors (including missing `from-param` keys and directive template execution errors). By default, `ymr` runs in best-effort mode: directive failures preserve defaults, and failed templates/targets are skipped.
+- `--debug`: Enable debug logging.
 
 **Example `ymr run` usage:**
 
@@ -315,93 +327,110 @@ ymr version
 ```
 
 ### Template Syntax
+
 <a name="template-syntax"></a>
 
 `ymr` uses special comments within your YAML templates to identify where parameters should be injected.
 
 Templates may contain multiple YAML documents separated by `---`; `ymr` processes each document.
 
-*   `# from-param: {{ .var }}`: Replaces the entire value with the value of the parameter `{{ .var }}`.
+- `# from-param: {{ .var }}`: Replaces the entire value with the value of the parameter `{{ .var }}`.
 
-    **Template:**
-    ```yaml
-    replicas: 1 # from-param: {{ .replicas }}
-    ```
-    **`spec.yaml` parameter:**
-    ```yaml
-    replicas: 3
-    ```
-    **Output:**
-    ```yaml
-    replicas: 3
-    ```
+  **Template:**
 
-*   `# from-param-merge: {{ .var }}`: Merges the YAML structure defined by the parameter `{{ .var }}` into the current location. This is useful for injecting complex objects or lists.
+  ```yaml
+  replicas: 1 # from-param: {{ .replicas }}
+  ```
 
-    **Template:**
-    ```yaml
-    metadata:
-      labels: # from-param-merge: {{ .commonLabels }}
-        app: my-app
-    ```
-    **`spec.yaml` parameter:**
-    ```yaml
-    commonLabels:
+  **`spec.yaml` parameter:**
+
+  ```yaml
+  replicas: 3
+  ```
+
+  **Output:**
+
+  ```yaml
+  replicas: 3
+  ```
+
+- `# from-param-merge: {{ .var }}`: Merges the YAML structure defined by the parameter `{{ .var }}` into the current location. This is useful for injecting complex objects or lists.
+
+  **Template:**
+
+  ```yaml
+  metadata:
+    labels: # from-param-merge: {{ .commonLabels }}
+      app: my-app
+  ```
+
+  **`spec.yaml` parameter:**
+
+  ```yaml
+  commonLabels:
+    environment: production
+    version: v1.0.0
+  ```
+
+  **Output:**
+
+  ```yaml
+  metadata:
+    labels:
+      app: my-app
       environment: production
       version: v1.0.0
-    ```
-    **Output:**
-    ```yaml
-    metadata:
-      labels:
-        app: my-app
-        environment: production
-        version: v1.0.0
-    ```
+  ```
 
 #### Template helper functions
 
 `ymr` supports helper functions inside directive templates.
 
-*   `lower`, `upper`, `replace`: string transforms.
-*   `for`: maps each item in a list using `$i` as the per-item placeholder.
+- `lower`, `upper`, `replace`: string transforms.
+- `for`: maps each item in a list using `$i` as the per-item placeholder.
 
-    **Joined scalar output:**
-    ```yaml
-    email: xxx # from-param: {{ .ldaps | for "$i@example.com" "," }}
-    ```
+  **Joined scalar output:**
 
-    **`spec.yaml` parameter:**
-    ```yaml
-    ldaps:
-      - Sponge
-      - bob
-    ```
+  ```yaml
+  email: xxx # from-param: {{ .ldaps | for "$i@example.com" "," }}
+  ```
 
-    **Output:**
-    ```yaml
-    email: Sponge@example.com,bob@example.com
-    ```
+  **`spec.yaml` parameter:**
 
-    **YAML sequence output:**
-    ```yaml
-    emails: [] # from-param: {{ .ldaps | for "$i@example.com" }}
-    ```
+  ```yaml
+  ldaps:
+    - Sponge
+    - bob
+  ```
 
-    **Output:**
-    ```yaml
-    emails:
-      - Sponge@example.com
-      - bob@example.com
-    ```
+  **Output:**
 
-    Notes:
-    - `for` only works with slice/array values.
-    - Passing a delimiter produces a scalar string.
-    - Omitting the delimiter produces a YAML sequence.
-    - Item casing is preserved as provided in params.
+  ```yaml
+  email: Sponge@example.com,bob@example.com
+  ```
+
+  **YAML sequence output:**
+
+  ```yaml
+  emails: [] # from-param: {{ .ldaps | for "$i@example.com" }}
+  ```
+
+  **Output:**
+
+  ```yaml
+  emails:
+    - Sponge@example.com
+    - bob@example.com
+  ```
+
+  Notes:
+  - `for` only works with slice/array values.
+  - Passing a delimiter produces a scalar string.
+  - Omitting the delimiter produces a YAML sequence.
+  - Item casing is preserved as provided in params.
 
 ### Examples
+
 <a name="examples"></a>
 
 The [`example`](./example) directory contains a few examples of how to use `ymr`.
@@ -422,6 +451,7 @@ ymr run -s . -o -
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Contributing
+
 <a name="contributing"></a>
 
 With the proliferation of AI agents, simply submit a PR for review that includes bug fixes or new features.
@@ -429,6 +459,7 @@ With the proliferation of AI agents, simply submit a PR for review that includes
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### License
+
 <a name="license"></a>
 
 This project is licensed under the MIT License. See the `LICENSE` file for details.
